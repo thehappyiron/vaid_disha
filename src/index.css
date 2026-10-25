@@ -732,3 +732,168 @@
     margin: 0;
   }
 }
+
+/* Decorative hospital backdrop stays behind the patient interface. */
+.app-shell-patient {
+  position: relative;
+  isolation: isolate;
+}
+
+.app-shell-patient::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: url('/images/hospital-corridor.png') center / cover no-repeat;
+  opacity: 0.5;
+}
+
+html.theme-dark .app-shell-patient::before {
+  opacity: 0.12;
+}
+
+html.theme-high-contrast .app-shell-patient::before {
+  display: none;
+}
+
+@media (forced-colors: active) {
+  .app-shell-patient::before {
+    display: none;
+  }
+}
+
+/* The paper slip has its own document layout, independent of screen width. */
+.slip-print {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 14mm;
+  }
+
+  body:has(.slip-print) {
+    margin: 0 !important;
+    background: #fff !important;
+    color: #111 !important;
+  }
+
+  body:has(.slip-print) > :not(#root),
+  .app-shell:has(.slip-print) > :not(main),
+  .app-shell:has(.slip-print)::before,
+  .slip-screen {
+    display: none !important;
+  }
+
+  body:has(.slip-print) #root,
+  .app-shell:has(.slip-print),
+  .app-shell:has(.slip-print) > main {
+    display: block !important;
+    width: auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  .slip-print {
+    display: block;
+    width: 100%;
+    color: #111;
+    background: #fff;
+    font-family: var(--font-family-base);
+    font-size: 11pt;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+
+  .slip-print-header {
+    padding-bottom: 6mm;
+    border-bottom: 1.5pt solid #111;
+  }
+
+  .slip-print-header > p {
+    margin: 0 0 2mm;
+    font-size: 13pt;
+    font-weight: 700;
+  }
+
+  .slip-print-header h1 {
+    margin: 0 0 2mm;
+    font-size: 10pt;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+
+  .slip-print-header > span,
+  .slip-print-identity p,
+  .slip-print-details dt {
+    font-size: 9pt;
+    color: #444;
+  }
+
+  .slip-print-identity,
+  .slip-print-details {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 5mm 8mm;
+    margin: 6mm 0;
+  }
+
+  .slip-print-identity > div,
+  .slip-print-details > div,
+  .slip-print-directions,
+  .slip-print-footer {
+    break-inside: avoid;
+  }
+
+  .slip-print-identity strong {
+    display: block;
+    font-size: 13pt;
+    font-weight: 700;
+  }
+
+  .slip-print-identity .slip-print-token {
+    font-size: 30pt;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .slip-print-details > div {
+    padding: 0 0 4mm;
+    border-bottom: 0.5pt solid #ccc;
+  }
+
+  .slip-print-details dd {
+    margin: 1mm 0 0;
+    font-size: 11pt;
+    font-weight: 600;
+  }
+
+  .slip-print-directions {
+    margin-top: 7mm;
+    padding: 5mm;
+    border: 0.75pt solid #777;
+  }
+
+  .slip-print-directions h2 {
+    margin: 0 0 2mm;
+    font-size: 11pt;
+    font-weight: 700;
+  }
+
+  .slip-print-footer {
+    margin-top: 8mm;
+    padding-top: 4mm;
+    border-top: 0.5pt solid #ccc;
+    font-size: 9pt;
+  }
+
+  .slip-print-footer > p + p {
+    margin-top: 2mm;
+    color: #555;
+  }
+}

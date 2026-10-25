@@ -31,7 +31,7 @@ export function BaseLayout({ children, showHome = true, headerTitle, isStaff = f
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--color-bg)] text-[var(--color-text)]">
+    <div className={`app-shell${isStaff ? '' : ' app-shell-patient'} min-h-screen flex flex-col bg-[var(--color-bg)] text-[var(--color-text)]`}>
       {/* Skip link — first focusable element on every page */}
       <a href="#main-content" className="skip-link">
         {t('a11y.skip_to_content', 'Skip to main content')}

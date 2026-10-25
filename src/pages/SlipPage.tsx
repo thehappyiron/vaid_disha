@@ -481,7 +481,63 @@ export function SlipPage() {
 
   return (
     <BaseLayout showHome={true} headerTitle={t('app.name')}>
-      <div className="page-container gap-4">
+      <article className="slip-print" aria-label={t('slip.page_title')}>
+        <header className="slip-print-header">
+          <p>{t('slip.hospital_title')}</p>
+          <h1>{t('slip.slip_subtitle')}</h1>
+          <span>
+            {t('slip.generated_at')}: {formatDate(slip.generatedAt)} · {formatTime(slip.generatedAt)}
+          </span>
+        </header>
+
+        <div className="slip-print-identity">
+          <div>
+            <p>{t('slip.your_token')}</p>
+            <strong className="slip-print-token">{slip.token}</strong>
+          </div>
+          <div>
+            <p>{t('slip.patient_label')}</p>
+            <strong>{slip.patientName || user?.name || t('slip.patient_label')}</strong>
+            <p>{isGuestUser ? t('slip.guest_badge') : t('slip.registered_badge')}</p>
+          </div>
+        </div>
+
+        <dl className="slip-print-details">
+          <div>
+            <dt>{t('slip.department')}</dt>
+            <dd>{t(slip.department.nameKey)}</dd>
+          </div>
+          <div>
+            <dt>{t('slip.doctor')}</dt>
+            <dd>{slip.doctorName || slip.department.doctorName || '—'}</dd>
+          </div>
+          <div>
+            <dt>{t('slip.room')}</dt>
+            <dd>{slip.roomNumber || slip.department.roomNumbers?.[0] || '—'}</dd>
+          </div>
+          <div>
+            <dt>{t('slip.floor')}</dt>
+            <dd>
+              {floorLabel(slip.floor ?? slip.department.floor, t)}
+              {(slip.wing || slip.department.wing) && ` · ${slip.wing || slip.department.wing}`}
+            </dd>
+          </div>
+        </dl>
+
+        {slip.humanReadableDirection && (
+          <section className="slip-print-directions">
+            <h2>{t('slip.how_to_reach_title')}</h2>
+            <p>{slip.humanReadableDirection}</p>
+          </section>
+        )}
+
+        <footer className="slip-print-footer">
+          <p>{t('slip.print_instructions')}</p>
+          <p>{slip.id}</p>
+        </footer>
+      </article>
+
+      <div className="slip-screen page-container gap-4">
         {/* Emergency Alert Banner if Emergency */}
         {isEmergency && (
           <div
