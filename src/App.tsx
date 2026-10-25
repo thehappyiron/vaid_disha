@@ -41,7 +41,7 @@ export function App() {
             {/* Entry flow: Screen A (Language selection) & Screen B (Role selection) */}
             <Route path="/" element={<RoleSelectionPage />} />
 
-            {/* Patient entry with local demo sign-in or guest access */}
+            {/* Patient entry with email OTP verification or guest access */}
             <Route path="/patient/start" element={<PatientStartPage />} />
             <Route path="/patient/emergency" element={<EmergencyPage />} />
             <Route path="/patient/visit" element={<PatientVisitPage />} />

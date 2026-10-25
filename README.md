@@ -96,8 +96,10 @@ To experience live cross-tab synchronization:
 - Tap Accessibility in the header to preview **Text Size (Normal / Large / Extra Large)**, **High Contrast**, or **Colorblind Assist**.
 - Click **"Patient / Visitor"**.
 
-### 2. Zero-Friction Patient Entry (`/patient/start`)
-- Enter your name and any 10-digit mobile number, then select **"Continue to demo"**. Email is optional; no verification code, email service, or backend is required for demo sign-in. The profile is saved in this browser. Phone `9876543210` loads the sample patient's demo history.
+### 2. Patient Entry (`/patient/start`)
+- Enter your name, 10-digit mobile number and email, then select **"Send verification code"**. Enter the 6-digit code from your email and select **"Verify & Enter"**. Codes expire after 10 minutes. Phone `9876543210` loads the sample patient's history after verification.
+- For local email delivery, set the server-only `RESEND_API_KEY` and `RESEND_FROM_EMAIL` in a gitignored `.env` file (see `.env.example`), then restart Vite. Vite handles `/api/email/*` during development; keep `VITE_API_BASE_URL=/api` to use it. A separate server is unnecessary for local OTP login. Production requires the existing email API server.
+- Resend's default `onboarding@resend.dev` sender only delivers test emails to the Resend account owner's address. To send OTPs to other recipients, [add and verify a domain you own](https://resend.com/docs/dashboard/domains/introduction), set `RESEND_FROM_EMAIL` to an address on that domain, and restart the server. Changing the sender to a Gmail address does not satisfy domain verification.
 - Select **"Continue as Guest"** to proceed without a phone number.
 
 ### 3. Purpose & Accessibility Accommodations (`/patient/visit`)

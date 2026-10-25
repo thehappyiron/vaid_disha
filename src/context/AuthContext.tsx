@@ -12,6 +12,11 @@ import {
   MOCK_STAFF_USER,
   createMockGuestUser,
 } from '../data/mockUserData';
+import { verifyEmailOtp } from '../services/emailService';
+import {
+  syncUserProfileToSupabase,
+  fetchSupabaseUser,
+} from '../services/supabaseClient';
 
 export function deriveNameFromEmail(email?: string): string {
   if (!email) return 'Registered Patient';
@@ -34,11 +39,12 @@ interface AuthContextValue {
   role: UserRole | null;
   isAuthenticated: boolean;
   isGuest: boolean;
-  loginAsDemoPatient: (
+  loginAsPatientWithOtp: (
     phone: string,
-    email?: string,
+    otp: string,
+    email: string,
     name?: string
-  ) => UserProfile;
+  ) => Promise<UserProfile>;
   loginAsGuest: () => UserProfile;
   loginAsStaff: (staffId: string, password?: string) => Promise<boolean>;
   logout: () => void;
@@ -82,10 +88,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (user) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+      void syncUserProfileToSupabase(user);
     } else {
       localStorage.removeItem(STORAGE_KEY);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!user?.id || user.isGuest) return;
+    let cancelled = false;
+    void fetchSupabaseUser(user.id).then((cloudUser) => {
+      if (!cancelled && cloudUser?.name && cloudUser.name !== 'Patient') {
+        setUser((prev) =>
+          prev?.id === cloudUser.id ? { ...prev, ...cloudUser } : prev
+        );
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, user?.isGuest]);
 
   const updateUserProfile = (updates: Partial<UserProfile>) => {
     setUser((prev) => {
@@ -95,14 +117,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  // Demo sign-in creates a local profile, without verifying contact details.
-  const loginAsDemoPatient = (
+  const loginAsPatientWithOtp = async (
     phone: string,
-    email?: string,
+    otp: string,
+    email: string,
     name?: string
-  ): UserProfile => {
+  ): Promise<UserProfile> => {
     const normalizedPhone = phone.replace(/\D/g, '');
-    const normalizedEmail = email?.trim().toLowerCase() || undefined;
+    const normalizedEmail = email.trim().toLowerCase();
+    await verifyEmailOtp(normalizedEmail, otp);
     const existingPatient =
       user?.role === 'registered' && user.phone === normalizedPhone
         ? user
@@ -118,11 +141,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const registeredUser: UserProfile = {
       ...existingPatient,
-      id: existingPatient?.id || `demo-pat-${normalizedPhone}`,
+      id:
+        existingPatient?.id ||
+        `pat-${normalizedPhone.slice(-4)}-${Date.now().toString().slice(-5)}`,
       name: cleanName,
       phone: normalizedPhone,
       email: normalizedEmail,
-      emailVerified: false,
+      emailVerified: true,
       role: 'registered',
       isGuest: false,
       visits: existingPatient?.visits || [],
@@ -167,7 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     role: user?.role ?? null,
     isAuthenticated: !!user,
     isGuest: !!user?.isGuest,
-    loginAsDemoPatient,
+    loginAsPatientWithOtp,
     loginAsGuest,
     loginAsStaff,
     logout,
