@@ -30,7 +30,11 @@ export function RoleSelectionPage() {
   const [speakingCode, setSpeakingCode] = useState<string | null>(null);
 
   // Web Speech API text-to-speech for language names
-  const speakLanguage = (text: string, langCode: LanguageCode, e?: React.MouseEvent) => {
+  const speakLanguage = (
+    text: string,
+    langCode: LanguageCode,
+    e?: React.MouseEvent
+  ) => {
     if (e) {
       e.stopPropagation();
     }
@@ -39,7 +43,8 @@ export function RoleSelectionPage() {
     try {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = langCode === 'hi' ? 'hi-IN' : langCode === 'mr' ? 'mr-IN' : 'en-US';
+      utterance.lang =
+        langCode === 'hi' ? 'hi-IN' : langCode === 'mr' ? 'mr-IN' : 'en-US';
       utterance.rate = 0.85;
 
       setSpeakingCode(langCode);
@@ -87,7 +92,11 @@ export function RoleSelectionPage() {
           </div>
 
           {/* Large Language Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 my-2" role="group" aria-label={t('language_select.title')}>
+          <div
+            className="grid grid-cols-1 md:grid-cols-3 gap-3 my-2"
+            role="group"
+            aria-label={t('language_select.title')}
+          >
             {LANGUAGES.map((lang) => {
               const isSelected = currentLang === lang.code;
               const isSpeaking = speakingCode === lang.code;
@@ -102,7 +111,11 @@ export function RoleSelectionPage() {
                   ariaPressed={isSelected}
                   icon={
                     <div className="font-bold text-base">
-                      {isSelected ? <Check size={22} aria-hidden="true" /> : lang.code.toUpperCase()}
+                      {isSelected ? (
+                        <Check size={22} aria-hidden="true" />
+                      ) : (
+                        lang.code.toUpperCase()
+                      )}
                     </div>
                   }
                   iconBgClass={
@@ -111,11 +124,19 @@ export function RoleSelectionPage() {
                       : 'bg-[var(--color-surface-2)] text-[var(--color-text-muted)]'
                   }
                   title={lang.nativeLabel}
-                  description={lang.code === 'en' ? 'English' : lang.code === 'hi' ? 'Hindi' : 'Marathi'}
+                  description={
+                    lang.code === 'en'
+                      ? 'English'
+                      : lang.code === 'hi'
+                        ? 'Hindi'
+                        : 'Marathi'
+                  }
                   rightSlot={
                     <button
                       type="button"
-                      onClick={(e) => speakLanguage(lang.nativeLabel, lang.code, e)}
+                      onClick={(e) =>
+                        speakLanguage(lang.nativeLabel, lang.code, e)
+                      }
                       className={[
                         'btn btn-icon btn-sm rounded-full shrink-0 transition-transform active:scale-95',
                         isSpeaking
@@ -125,7 +146,14 @@ export function RoleSelectionPage() {
                       aria-label={`${t('language_select.listen_label')} ${lang.nativeLabel}`}
                       title={`${t('language_select.listen_label')} ${lang.nativeLabel}`}
                     >
-                      <Volume2 size={20} className={isSpeaking ? 'text-white' : 'text-[var(--color-primary-500)]'} />
+                      <Volume2
+                        size={20}
+                        className={
+                          isSpeaking
+                            ? 'text-white'
+                            : 'text-[var(--color-primary-500)]'
+                        }
+                      />
                     </button>
                   }
                 />
@@ -146,11 +174,7 @@ export function RoleSelectionPage() {
               {t('language_select.confirm')}
             </Button>
 
-            <Button
-              variant="ghost"
-              fullWidth
-              onClick={handleSkipLanguage}
-            >
+            <Button variant="ghost" fullWidth onClick={handleSkipLanguage}>
               {t('language_select.skip')}
             </Button>
           </div>
@@ -199,7 +223,11 @@ export function RoleSelectionPage() {
         </div>
 
         {/* Exactly 3 Equal-Sized Role Buttons */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 my-2" role="group" aria-label={t('roles.select_role_title')}>
+        <div
+          className="grid grid-cols-1 md:grid-cols-3 gap-4 my-2"
+          role="group"
+          aria-label={t('roles.select_role_title')}
+        >
           {/* 1. Patient Role (Most prominent) */}
           <OptionCard
             highlighted
@@ -260,7 +288,8 @@ export function RoleSelectionPage() {
         {/* Emergency Assistance Quick Link */}
         <div className="text-center pt-2">
           <p className="text-xs text-[var(--color-text-muted)]">
-            Medical emergency or critical care? Proceed directly to Building E (Casualty & Emergency) or dial 108.
+            Medical emergency or critical care? Emergency (Casualty) is on the
+            ground floor, Room G-03.
           </p>
         </div>
       </div>

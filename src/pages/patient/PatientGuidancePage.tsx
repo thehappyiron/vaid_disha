@@ -23,12 +23,7 @@ import {
   Languages,
 } from 'lucide-react';
 import { BaseLayout } from '../../components/layout';
-import {
-  PageHeader,
-  Button,
-  Card,
-  OptionCard,
-} from '../../components/ui';
+import { PageHeader, Button, Card, OptionCard } from '../../components/ui';
 import { HospitalFloorMap } from '../../components/guidance/HospitalFloorMap';
 import { voiceService } from '../../services/voice';
 import {
@@ -41,7 +36,8 @@ import {
   type RouteResult,
   type GuidanceStep,
 } from '../../services/pathfindingService';
-import { getSlipById } from '../../services/hospitalService';
+import { getSlipById, normalizeSlip } from '../../services/hospitalService';
+import { getDepartment } from '../../data/departments';
 import type { Slip } from '../../types';
 
 export function PatientGuidancePage() {
@@ -51,15 +47,23 @@ export function PatientGuidancePage() {
   const { slipId } = useParams<{ slipId?: string }>();
 
   // Slip context
-  const [slip, setSlip] = useState<Slip | null>((location.state as { slip?: Slip })?.slip || null);
+  const [slip, setSlip] = useState<Slip | null>(() =>
+    (location.state as { slip?: Slip })?.slip
+      ? normalizeSlip((location.state as { slip: Slip }).slip)
+      : null
+  );
 
   // Guidance state
   const [startNode, setStartNode] = useState<GraphNode | null>(null);
-  const [destinationNode, setDestinationNode] = useState<GraphNode | null>(null);
+  const [destinationNode, setDestinationNode] = useState<GraphNode | null>(
+    null
+  );
   const [routeResult, setRouteResult] = useState<RouteResult | null>(null);
 
   // Step 1: Location picker state
-  const [activeStepTab, setActiveStepTab] = useState<'landmark' | 'qr'>('landmark');
+  const [activeStepTab, setActiveStepTab] = useState<'landmark' | 'qr'>(
+    'landmark'
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [customPillarInput, setCustomPillarInput] = useState('');
   const [cameraMockActive, setCameraMockActive] = useState(false);
@@ -83,8 +87,15 @@ export function PatientGuidancePage() {
     slip?.accessibilityNeeds?.includes('wheelchair') ||
     slip?.accessibilityNeeds?.includes('walking_difficulty');
 
-  const destinationName = destinationNode ? t(destinationNode.nameKey, destinationNode.name) : '';
-  const isFacilityDestination = destinationNode?.category === 'facility';
+  const destinationName = destinationNode
+    ? t(destinationNode.nameKey, destinationNode.name)
+    : '';
+  const destinationCategory = getDepartment(
+    destinationNode?.departmentId
+  )?.category;
+  const showAppointmentInstructions =
+    destinationCategory === 'consultation' ||
+    destinationCategory === 'diagnostics';
 
   // Load slip if provided via ID
   useEffect(() => {
@@ -104,8 +115,14 @@ export function PatientGuidancePage() {
   // Set destination and start node from location state or URL params or slip
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const destParam = params.get('dest') || (location.state as { destinationNodeId?: string })?.destinationNodeId;
-    const startParam = params.get('start') || (location.state as { startNodeId?: string })?.startNodeId;
+    const destParam =
+      params.get('dest') ||
+      (location.state as { destinationNodeId?: string })?.destinationNodeId;
+    const departmentParam = (location.state as { departmentId?: string })
+      ?.departmentId;
+    const startParam =
+      params.get('start') ||
+      (location.state as { startNodeId?: string })?.startNodeId;
 
     if (startParam) {
       const sNode = getNodeById(startParam);
@@ -126,19 +143,25 @@ export function PatientGuidancePage() {
       }
     }
 
+    if (departmentParam) {
+      const destination = findNodeByDepartmentId(departmentParam);
+      if (destination) {
+        setDestinationNode(destination);
+        return;
+      }
+    }
+
     if (slip) {
       let dest = findNodeByDepartmentId(slip.department.id);
       if (!dest && slip.roomNumber) {
         dest = findNodeByPillarCode(slip.roomNumber);
       }
       if (!dest) {
-        // Fallback destination based on floor
-        dest = getNodeById('opd-cardiology') || getNodeById('opd-general')!;
+        dest = getNodeById('opd-general');
       }
-      setDestinationNode(dest);
+      setDestinationNode(dest || null);
     } else {
-      // Default sample destination (Cardiology Room B-201)
-      const defaultDest = getNodeById('opd-cardiology')!;
+      const defaultDest = getNodeById('opd-general')!;
       setDestinationNode(defaultDest);
     }
   }, [slip, location.search, location.state]);
@@ -170,7 +193,7 @@ export function PatientGuidancePage() {
       if (!roomVal || roomVal === 'Counter' || roomVal === 'undefined') {
         return t('guidance.step_arrive_simple', {
           defaultValue: `You have reached ${params.landmark}.`,
-          landmark: params.landmark,
+          landmark: t(step.toNode.nameKey, { defaultValue: params.landmark }),
         });
       }
     }
@@ -184,7 +207,9 @@ export function PatientGuidancePage() {
   // Speak current instruction
   const speakCurrentStep = (stepText: string) => {
     if (!voiceService.isSupported()) {
-      setVoiceError('Voice temporarily unavailable. Continue using the on-screen directions.');
+      setVoiceError(
+        'Voice temporarily unavailable. Continue using the on-screen directions.'
+      );
       return;
     }
     setVoiceError(null);
@@ -195,7 +220,9 @@ export function PatientGuidancePage() {
       onEnd: () => setIsSpeaking(false),
       onError: () => {
         setIsSpeaking(false);
-        setVoiceError('Voice temporarily unavailable. Continue using the on-screen directions.');
+        setVoiceError(
+          'Voice temporarily unavailable. Continue using the on-screen directions.'
+        );
       },
     });
   };
@@ -212,7 +239,12 @@ export function PatientGuidancePage() {
 
   // Auto-speak on step transition if enabled
   useEffect(() => {
-    if (routeResult && routeResult.steps[activeStepIndex] && autoVoice && !isArrived) {
+    if (
+      routeResult &&
+      routeResult.steps[activeStepIndex] &&
+      autoVoice &&
+      !isArrived
+    ) {
       const currentStep = routeResult.steps[activeStepIndex];
       const text = getStepInstructionText(currentStep);
       speakCurrentStep(text);
@@ -233,6 +265,9 @@ export function PatientGuidancePage() {
 
   const handleNextStep = () => {
     if (!routeResult) return;
+    const confirmedNode = routeResult.steps[activeStepIndex]?.toNode;
+    if (confirmedNode)
+      localStorage.setItem('vd-last-location', confirmedNode.id);
     if (activeStepIndex < routeResult.steps.length - 1) {
       setActiveStepIndex((prev) => prev + 1);
     } else {
@@ -256,6 +291,7 @@ export function PatientGuidancePage() {
   // Select location from landmark list
   const handleSelectLandmark = (node: GraphNode) => {
     setStartNode(node);
+    localStorage.setItem('vd-last-location', node.id);
   };
 
   // Select location from pillar code
@@ -263,9 +299,12 @@ export function PatientGuidancePage() {
     const found = findNodeByPillarCode(code);
     if (found) {
       setStartNode(found);
+      localStorage.setItem('vd-last-location', found.id);
       setCustomPillarInput('');
     } else {
-      alert(`Pillar code "${code}" not found. Please try F0-P1, F0-P2, F1-P3, or F2-P7.`);
+      alert(
+        `Pillar code "${code}" not found. Please try F0-P1, F0-P2, F1-WA, or F2-N1.`
+      );
     }
   };
 
@@ -308,7 +347,9 @@ export function PatientGuidancePage() {
         {hasMobilityNeeds && (
           <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-300 rounded-xl text-blue-900 text-xs sm:text-sm font-semibold">
             <span className="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0" />
-            <span>Accessible route active: Step-free path using elevators only.</span>
+            <span>
+              Accessible route active: Step-free path using elevators only.
+            </span>
           </div>
         )}
 
@@ -399,7 +440,10 @@ export function PatientGuidancePage() {
                       return (
                         <div key={group.floor} className="flex flex-col gap-2">
                           <div className="flex items-center gap-2 px-1">
-                            <Layers size={15} className="text-[var(--color-primary-500)]" />
+                            <Layers
+                              size={15}
+                              className="text-[var(--color-primary-500)]"
+                            />
                             <h3 className="text-xs font-black uppercase tracking-wider text-[var(--color-text-muted)]">
                               {t(`guidance.floor_${group.floor}`)}
                             </h3>
@@ -411,8 +455,14 @@ export function PatientGuidancePage() {
                                 key={landmark.id}
                                 onClick={() => handleSelectLandmark(landmark)}
                                 icon={<MapPin size={22} />}
-                                title={landmark.name}
-                                description={landmark.roomNumber ? `Room ${landmark.roomNumber}` : undefined}
+                                title={t(landmark.nameKey, {
+                                  defaultValue: landmark.name,
+                                })}
+                                description={
+                                  landmark.roomNumber
+                                    ? `Room ${landmark.roomNumber}`
+                                    : undefined
+                                }
                                 chevron={true}
                                 badge={
                                   landmark.pillarCode ? (
@@ -437,7 +487,9 @@ export function PatientGuidancePage() {
                   <div className="p-4 rounded-xl bg-amber-50/70 border border-amber-300 text-amber-950 flex flex-col gap-2">
                     <div className="flex items-center gap-2">
                       <QrCode size={20} className="text-amber-800 shrink-0" />
-                      <h4 className="font-bold text-sm">{t('guidance.qr_title')}</h4>
+                      <h4 className="font-bold text-sm">
+                        {t('guidance.qr_title')}
+                      </h4>
                     </div>
                     <p className="text-xs font-medium leading-relaxed">
                       {t('guidance.qr_desc')}
@@ -451,11 +503,16 @@ export function PatientGuidancePage() {
                       <span className="absolute -top-1 -right-1 w-4 h-4 border-t-2 border-r-2 border-emerald-400" />
                       <span className="absolute -bottom-1 -left-1 w-4 h-4 border-b-2 border-l-2 border-emerald-400" />
                       <span className="absolute -bottom-1 -right-1 w-4 h-4 border-b-2 border-r-2 border-emerald-400" />
-                      <QrCode size={48} className="text-emerald-400/80 animate-pulse" />
+                      <QrCode
+                        size={48}
+                        className="text-emerald-400/80 animate-pulse"
+                      />
                     </div>
                     <div>
                       <p className="font-bold text-sm text-slate-200">
-                        {cameraMockActive ? 'Camera scanner active…' : 'Position pillar QR code in frame'}
+                        {cameraMockActive
+                          ? 'Camera scanner active…'
+                          : 'Position pillar QR code in frame'}
                       </p>
                       <button
                         type="button"
@@ -474,7 +531,10 @@ export function PatientGuidancePage() {
 
                   {/* Manual Pillar Code Entry */}
                   <div className="flex flex-col gap-2 pt-1">
-                    <label htmlFor="pillar-input" className="text-xs font-bold text-[var(--color-text)]">
+                    <label
+                      htmlFor="pillar-input"
+                      className="text-xs font-bold text-[var(--color-text)]"
+                    >
                       {t('guidance.qr_simulate')}
                     </label>
                     <div className="flex gap-2">
@@ -505,8 +565,8 @@ export function PatientGuidancePage() {
                       {[
                         { code: 'F0-P1', label: 'Entrance' },
                         { code: 'F0-P2', label: 'Reception' },
-                        { code: 'F1-P1', label: 'Floor 1 Waiting' },
-                        { code: 'F2-P7', label: 'Floor 2 Pillar' },
+                        { code: 'F1-WA', label: 'Waiting hall A' },
+                        { code: 'F2-N1', label: 'Nurses’ station' },
                       ].map((item) => (
                         <button
                           key={item.code}
@@ -534,8 +594,13 @@ export function PatientGuidancePage() {
             STEP 2: ROUTE NAVIGATION DISPLAY
             ═════════════════════════════════════════════════════════════════════ */}
         {startNode && destinationNode && !routeResult && (
-          <div role="alert" className="p-4 rounded-xl border-2 border-amber-300 bg-amber-50 text-amber-950 font-semibold">
-            {hasMobilityNeeds ? 'No step-free route is available for this destination.' : 'No route is available between these locations.'}
+          <div
+            role="alert"
+            className="p-4 rounded-xl border-2 border-amber-300 bg-amber-50 text-amber-950 font-semibold"
+          >
+            {hasMobilityNeeds
+              ? 'No step-free route is available for this destination.'
+              : 'No route is available between these locations.'}
           </div>
         )}
         {startNode && routeResult && (
@@ -543,13 +608,25 @@ export function PatientGuidancePage() {
             {/* Route Summary Bar */}
             <div className="p-3.5 bg-[var(--color-surface)] border-2 border-[var(--color-border)] rounded-2xl flex items-center justify-between gap-3 shadow-xs flex-wrap">
               <div className="flex items-center gap-2.5 flex-1">
-                <Footprints size={20} className="text-[var(--color-primary-500)] shrink-0" />
+                <Footprints
+                  size={20}
+                  className="text-[var(--color-primary-500)] shrink-0"
+                />
                 <div>
                   <span className="text-xs font-bold text-[var(--color-text-muted)] block">
-                    Starting from: <strong className="text-[var(--color-text)]">{startNode.name}</strong>
+                    Starting from:{' '}
+                    <strong className="text-[var(--color-text)]">
+                      {startNode.name}
+                    </strong>
                   </span>
                   <span className="text-xs font-bold text-[var(--color-text-muted)] block">
-                    Destination: <strong className="text-[var(--color-primary-600)]">{destinationName}</strong>{destinationNode?.roomNumber ? ` (Room ${destinationNode.roomNumber})` : ''}
+                    Destination:{' '}
+                    <strong className="text-[var(--color-primary-600)]">
+                      {destinationName}
+                    </strong>
+                    {destinationNode?.roomNumber
+                      ? ` (Room ${destinationNode.roomNumber})`
+                      : ''}
                   </span>
                 </div>
               </div>
@@ -606,14 +683,16 @@ export function PatientGuidancePage() {
                   </p>
                 </div>
 
-                {!isFacilityDestination && (
+                {showAppointmentInstructions && (
                   <div className="p-4 bg-white/90 border border-emerald-300 rounded-2xl max-w-sm w-full">
                     <p className="text-sm font-extrabold text-emerald-950">
                       {t('guidance.arrival_action')}
                     </p>
                     {slip && (
                       <div className="mt-2 pt-2 border-t border-emerald-200 flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-600">Your Token:</span>
+                        <span className="text-xs font-bold text-slate-600">
+                          Your Token:
+                        </span>
                         <span className="text-lg font-mono font-black text-[var(--color-primary-600)]">
                           {slip.token}
                         </span>
@@ -627,7 +706,11 @@ export function PatientGuidancePage() {
                     <Button
                       variant="primary"
                       fullWidth
-                      onClick={() => navigate(`/patient/slip/${slip.id}`, { state: { slip } })}
+                      onClick={() =>
+                        navigate(`/patient/slip/${slip.id}`, {
+                          state: { slip },
+                        })
+                      }
                     >
                       {t('guidance.arrival_view_slip')}
                     </Button>
@@ -644,7 +727,9 @@ export function PatientGuidancePage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start w-full">
                 {/* ── COLUMN 1 (Left on desktop): STEP-BY-STEP GUIDANCE CARDS ──────────────── */}
-                <div className={`${viewMode === 'map' ? 'hidden md:flex' : 'flex'} flex-col gap-4 min-w-0`}>
+                <div
+                  className={`${viewMode === 'map' ? 'hidden md:flex' : 'flex'} flex-col gap-4 min-w-0`}
+                >
                   {currentStep && (
                     <>
                       {/* Step progress & voice toggle */}
@@ -669,7 +754,9 @@ export function PatientGuidancePage() {
                         >
                           <Volume2 size={16} />
                           <span className="text-xs font-bold">
-                            {autoVoice ? t('guidance.auto_voice_on') : t('guidance.auto_voice_off')}
+                            {autoVoice
+                              ? t('guidance.auto_voice_on')
+                              : t('guidance.auto_voice_off')}
                           </span>
                         </button>
                       </div>
@@ -685,17 +772,33 @@ export function PatientGuidancePage() {
                       </div>
 
                       {/* MAIN INSTRUCTION CARD (Large text, Large icon, Clear speech) */}
-                      <div ref={stepCardRef} tabIndex={-1} className="outline-none">
+                      <div
+                        ref={stepCardRef}
+                        tabIndex={-1}
+                        className="outline-none"
+                      >
                         <Card className="p-6 sm:p-8 border-3 border-[var(--color-primary-500)] bg-[var(--color-surface)] shadow-md flex flex-col gap-5 rounded-3xl">
                           <div className="flex items-start justify-between gap-4">
                             {/* Direction Icon Box */}
                             <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[var(--color-primary-50)] text-[var(--color-primary-600)] flex items-center justify-center shrink-0 shadow-inner">
-                              {currentStep.icon === 'arrow-left' && <ArrowLeft size={38} />}
-                              {currentStep.icon === 'arrow-right' && <ArrowRight size={38} />}
-                              {currentStep.icon === 'arrow-up' && <ArrowUp size={38} />}
-                              {currentStep.icon === 'elevator' && <Building2 size={38} />}
-                              {currentStep.icon === 'stairs' && <Layers size={38} />}
-                              {currentStep.icon === 'map-pin' && <MapPin size={38} />}
+                              {currentStep.icon === 'arrow-left' && (
+                                <ArrowLeft size={38} />
+                              )}
+                              {currentStep.icon === 'arrow-right' && (
+                                <ArrowRight size={38} />
+                              )}
+                              {currentStep.icon === 'arrow-up' && (
+                                <ArrowUp size={38} />
+                              )}
+                              {currentStep.icon === 'elevator' && (
+                                <Building2 size={38} />
+                              )}
+                              {currentStep.icon === 'stairs' && (
+                                <Layers size={38} />
+                              )}
+                              {currentStep.icon === 'map-pin' && (
+                                <MapPin size={38} />
+                              )}
                             </div>
 
                             {/* Read aloud button for this step */}
@@ -708,17 +811,25 @@ export function PatientGuidancePage() {
                                   ? 'btn-primary animate-pulse'
                                   : 'btn-secondary bg-white text-[var(--color-primary-600)] border border-[var(--color-primary-400)]',
                               ].join(' ')}
-                              aria-label={isSpeaking ? t('guidance.stop_audio') : t('guidance.read_aloud')}
+                              aria-label={
+                                isSpeaking
+                                  ? t('guidance.stop_audio')
+                                  : t('guidance.read_aloud')
+                              }
                             >
                               {isSpeaking ? (
                                 <>
                                   <VolumeX size={16} />
-                                  <span className="text-xs font-bold">{t('guidance.stop_audio')}</span>
+                                  <span className="text-xs font-bold">
+                                    {t('guidance.stop_audio')}
+                                  </span>
                                 </>
                               ) : (
                                 <>
                                   <Volume2 size={16} />
-                                  <span className="text-xs font-bold">{t('guidance.read_aloud')}</span>
+                                  <span className="text-xs font-bold">
+                                    {t('guidance.read_aloud')}
+                                  </span>
                                 </>
                               )}
                             </button>
@@ -731,7 +842,10 @@ export function PatientGuidancePage() {
                             </h3>
 
                             {voiceError && (
-                              <p role="status" className="mt-3 text-sm font-semibold text-amber-800">
+                              <p
+                                role="status"
+                                className="mt-3 text-sm font-semibold text-amber-800"
+                              >
                                 {voiceError}
                               </p>
                             )}
@@ -740,10 +854,12 @@ export function PatientGuidancePage() {
                           {/* Floor Indicator */}
                           <div className="pt-2 border-t border-[var(--color-border)] flex items-center justify-between text-xs text-[var(--color-text-muted)] font-bold">
                             <span>
-                              Current Location: <strong>Floor {currentStep.floor}</strong>
+                              Current Location:{' '}
+                              <strong>Floor {currentStep.floor}</strong>
                             </span>
                             <span>
-                              Target: <strong>Floor {destinationNode?.floor}</strong>
+                              Target:{' '}
+                              <strong>Floor {destinationNode?.floor}</strong>
                             </span>
                           </div>
                         </Card>
@@ -777,7 +893,9 @@ export function PatientGuidancePage() {
                 </div>
 
                 {/* ── COLUMN 2 (Right on desktop): 2D FLOOR PLAN SVG MAP ────────────────────── */}
-                <div className={`${viewMode === 'card' ? 'hidden md:flex' : 'flex'} flex-col gap-4 min-w-0 md:sticky md:top-20`}>
+                <div
+                  className={`${viewMode === 'card' ? 'hidden md:flex' : 'flex'} flex-col gap-4 min-w-0 md:sticky md:top-20`}
+                >
                   <HospitalFloorMap
                     currentFloor={selectedMapFloor}
                     onSelectFloor={(fl) => setSelectedMapFloor(fl)}
@@ -817,7 +935,9 @@ export function PatientGuidancePage() {
                           size="sm"
                           onClick={handleNextStep}
                         >
-                          {activeStepIndex === routeResult.steps.length - 1 ? 'Arrived ✓' : 'Next →'}
+                          {activeStepIndex === routeResult.steps.length - 1
+                            ? 'Arrived ✓'
+                            : 'Next →'}
                         </Button>
                       </div>
                     </div>
@@ -866,8 +986,14 @@ export function PatientGuidancePage() {
             <div className="bg-[var(--color-surface)] border-4 border-[var(--color-danger-500)] rounded-3xl w-full max-w-lg p-5 sm:p-6 shadow-2xl flex flex-col gap-4">
               <div className="flex items-center justify-between pb-3 border-b border-[var(--color-border)]">
                 <div className="flex items-center gap-2">
-                  <AlertTriangle size={24} className="text-[var(--color-danger-500)]" />
-                  <h3 id="staff-modal-title" className="font-black text-lg text-[var(--color-text)]">
+                  <AlertTriangle
+                    size={24}
+                    className="text-[var(--color-danger-500)]"
+                  />
+                  <h3
+                    id="staff-modal-title"
+                    className="font-black text-lg text-[var(--color-text)]"
+                  >
                     {t('guidance.staff_modal_title')}
                   </h3>
                 </div>
@@ -894,13 +1020,20 @@ export function PatientGuidancePage() {
                     {destinationNode?.name}
                   </span>
                   <span className="text-base font-extrabold text-slate-800 block">
-                    {destinationNode?.roomNumber ? `Room ${destinationNode.roomNumber} • ` : ''}Floor {destinationNode?.floor}
+                    {destinationNode?.roomNumber
+                      ? `Room ${destinationNode.roomNumber} • `
+                      : ''}
+                    Floor {destinationNode?.floor}
                   </span>
                 </div>
 
                 {/* Bilingual staff helper phrases */}
                 <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 pt-1">
-                  <Languages size={14} className="text-slate-400" aria-hidden="true" />
+                  <Languages
+                    size={14}
+                    className="text-slate-400"
+                    aria-hidden="true"
+                  />
                   <span>Regional Translations:</span>
                 </div>
                 <div className="flex flex-col gap-2">
@@ -910,7 +1043,9 @@ export function PatientGuidancePage() {
                     </span>
                     <span>
                       {t('guidance.staff_modal_bilingual_hi', {
-                        room: destinationNode?.roomNumber ? `कमरा ${destinationNode.roomNumber}` : 'विभाग',
+                        room: destinationNode?.roomNumber
+                          ? `कमरा ${destinationNode.roomNumber}`
+                          : 'विभाग',
                         dept: destinationNode?.name || 'विभाग',
                       })}
                     </span>
@@ -921,7 +1056,9 @@ export function PatientGuidancePage() {
                     </span>
                     <span>
                       {t('guidance.staff_modal_bilingual_mr', {
-                        room: destinationNode?.roomNumber ? `खोली क्र. ${destinationNode.roomNumber}` : 'विभाग',
+                        room: destinationNode?.roomNumber
+                          ? `खोली क्र. ${destinationNode.roomNumber}`
+                          : 'विभाग',
                         dept: destinationNode?.name || 'विभाग',
                       })}
                     </span>

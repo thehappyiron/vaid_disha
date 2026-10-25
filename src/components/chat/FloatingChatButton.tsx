@@ -16,7 +16,7 @@ export function FloatingChatButton() {
         }}
         className={[
           'fixed right-4 z-40',
-          'h-[72px] w-[78px] rounded-full',
+          'h-12 w-12 rounded-full',
           'bg-transparent hover:bg-transparent text-white',
           'shadow-none hover:shadow-none border-0',
           'flex items-center justify-center',
@@ -25,7 +25,11 @@ export function FloatingChatButton() {
         ].join(' ')}
         aria-label={t('chatbot.open_assistant', 'Open AI Help Assistant')}
       >
-        <img src="/images/chat-mascot.png" alt="" className="h-[72px] w-[78px] object-contain drop-shadow-xl transition-transform duration-200 hover:scale-110" />
+        <img
+          src="/images/chat-mascot.png"
+          alt=""
+          className="h-12 w-12 object-contain drop-shadow-xl transition-transform duration-200 hover:scale-110"
+        />
       </button>
 
       <ChatbotModal isOpen={isOpen} onClose={() => setIsOpen(false)} />

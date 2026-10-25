@@ -21,11 +21,7 @@ import {
   Accessibility,
 } from 'lucide-react';
 import { BaseLayout } from '../../components/layout';
-import {
-  Button,
-  PageHeader,
-  StatusBadge,
-} from '../../components/ui';
+import { Button, PageHeader, StatusBadge } from '../../components/ui';
 import {
   useLiveStore,
   type QueueEntry,
@@ -57,24 +53,35 @@ export function StaffDashboardPage() {
 
   const [selectedDeptId, setSelectedDeptId] = useState<string>('all');
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
-  const [smartSettings, setSmartSettings] = useState<SmartQueueSettings>(DEFAULT_SMART_QUEUE_SETTINGS);
+  const [smartSettings, setSmartSettings] = useState<SmartQueueSettings>(
+    DEFAULT_SMART_QUEUE_SETTINGS
+  );
   const [activeWhyPopover, setActiveWhyPopover] = useState<string | null>(null);
   const [customWaitInput, setCustomWaitInput] = useState<string>('');
   const prevEmergencyCountRef = useRef<number>(0);
 
   // Play audio chime for new emergency alerts if sound is enabled
   useEffect(() => {
-    const activeAlertsCount = state.emergencyRequests?.filter((e) => e.status === 'alerted').length || 0;
+    const activeAlertsCount =
+      state.emergencyRequests?.filter((e) => e.status === 'alerted').length ||
+      0;
     if (activeAlertsCount > prevEmergencyCountRef.current && soundEnabled) {
       try {
-        const audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+        const audioCtx = new (
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext })
+            .webkitAudioContext
+        )();
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = 'sine';
         osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
         osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.15); // E5
         gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+        gain.gain.exponentialRampToValueAtTime(
+          0.01,
+          audioCtx.currentTime + 0.5
+        );
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start();
@@ -89,7 +96,9 @@ export function StaffDashboardPage() {
   // Department list
   const departments = Object.values(state.departments);
   const activeDept: DepartmentLiveStatus | undefined =
-    selectedDeptId === 'all' ? departments[0] : state.departments[selectedDeptId];
+    selectedDeptId === 'all'
+      ? departments[0]
+      : state.departments[selectedDeptId];
 
   // Filter and sort queue
   const rawQueue = state.queue.filter(
@@ -98,14 +107,24 @@ export function StaffDashboardPage() {
   const queueEntries = sortQueueWithEngine(rawQueue, smartSettings);
 
   // Summary counts
-  const totalWaiting = state.queue.filter((q) => q.status === 'waiting' || q.status === 'turn_soon').length;
-  const totalInProgress = state.queue.filter((q) => q.status === 'in_progress').length;
-  const totalCompleted = state.queue.filter((q) => q.status === 'completed').length;
-  const activeEmergencies = (state.emergencyRequests || []).filter((e) => e.status !== 'resolved');
+  const totalWaiting = state.queue.filter(
+    (q) => q.status === 'waiting' || q.status === 'turn_soon'
+  ).length;
+  const totalInProgress = state.queue.filter(
+    (q) => q.status === 'in_progress'
+  ).length;
+  const totalCompleted = state.queue.filter(
+    (q) => q.status === 'completed'
+  ).length;
+  const activeEmergencies = (state.emergencyRequests || []).filter(
+    (e) => e.status !== 'resolved'
+  );
 
   // Format time ago
   const formatTimeAgo = (isoString: string) => {
-    const diff = Math.floor((Date.now() - new Date(isoString).getTime()) / 60000);
+    const diff = Math.floor(
+      (Date.now() - new Date(isoString).getTime()) / 60000
+    );
     if (diff < 1) return 'Just now';
     if (diff === 1) return '1 min ago';
     if (diff < 60) return `${diff} mins ago`;
@@ -131,7 +150,11 @@ export function StaffDashboardPage() {
   };
 
   return (
-    <BaseLayout showHome={true} headerTitle="Staff Queue Management" isStaff={true}>
+    <BaseLayout
+      showHome={true}
+      headerTitle="Staff Queue Management"
+      isStaff={true}
+    >
       <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col gap-5 sm:gap-6">
         {/* ── 1. PAGE TITLE & HEADER (Exact title on full row layout) ───────── */}
         <PageHeader
@@ -155,7 +178,10 @@ export function StaffDashboardPage() {
         />
 
         {/* ── 2. SUMMARY METRICS ROW (Waiting, In Progress, Completed, Emergencies) ── */}
-        <section aria-label="Queue Summary Statistics" className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <section
+          aria-label="Queue Summary Statistics"
+          className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
+        >
           {/* Waiting Card */}
           <div className="p-4 sm:p-5 rounded-2xl bg-[var(--color-surface)] border-2 border-[var(--color-border)] shadow-xs flex flex-col gap-2">
             <div>
@@ -205,18 +231,36 @@ export function StaffDashboardPage() {
           <div
             className="p-4 sm:p-5 rounded-2xl shadow-xs flex flex-col gap-2 transition-colors border-[3px]"
             style={{
-              backgroundColor: activeEmergencies.length > 0 ? 'var(--color-emergency-bg)' : 'var(--color-surface)',
-              borderColor: activeEmergencies.length > 0 ? 'var(--color-emergency-border)' : 'var(--color-border)',
-              color: activeEmergencies.length > 0 ? 'var(--color-emergency-text)' : 'inherit',
+              backgroundColor:
+                activeEmergencies.length > 0
+                  ? 'var(--color-emergency-bg)'
+                  : 'var(--color-surface)',
+              borderColor:
+                activeEmergencies.length > 0
+                  ? 'var(--color-emergency-border)'
+                  : 'var(--color-border)',
+              color:
+                activeEmergencies.length > 0
+                  ? 'var(--color-emergency-text)'
+                  : 'inherit',
             }}
           >
             <div>
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
                 style={{
-                  backgroundColor: activeEmergencies.length > 0 ? 'var(--color-emergency-btn-bg)' : 'var(--color-surface-2)',
-                  color: activeEmergencies.length > 0 ? 'var(--color-emergency-icon)' : 'var(--color-text-muted)',
-                  border: activeEmergencies.length > 0 ? '2px solid var(--color-emergency-border)' : 'none',
+                  backgroundColor:
+                    activeEmergencies.length > 0
+                      ? 'var(--color-emergency-btn-bg)'
+                      : 'var(--color-surface-2)',
+                  color:
+                    activeEmergencies.length > 0
+                      ? 'var(--color-emergency-icon)'
+                      : 'var(--color-text-muted)',
+                  border:
+                    activeEmergencies.length > 0
+                      ? '2px solid var(--color-emergency-border)'
+                      : 'none',
                 }}
               >
                 <AlertTriangle size={22} aria-hidden="true" />
@@ -225,7 +269,10 @@ export function StaffDashboardPage() {
             <div
               className="text-3xl font-black"
               style={{
-                color: activeEmergencies.length > 0 ? 'var(--color-emergency-text)' : 'inherit',
+                color:
+                  activeEmergencies.length > 0
+                    ? 'var(--color-emergency-text)'
+                    : 'inherit',
               }}
             >
               {activeEmergencies.length}
@@ -233,7 +280,10 @@ export function StaffDashboardPage() {
             <div
               className="w-full text-sm sm:text-base font-bold break-words leading-tight"
               style={{
-                color: activeEmergencies.length > 0 ? 'var(--color-emergency-text)' : 'var(--color-text-muted)',
+                color:
+                  activeEmergencies.length > 0
+                    ? 'var(--color-emergency-text)'
+                    : 'var(--color-text-muted)',
               }}
             >
               Active emergencies
@@ -280,12 +330,22 @@ export function StaffDashboardPage() {
                   border: '2px solid var(--color-emergency-border)',
                   color: 'var(--color-emergency-text)',
                 }}
-                aria-label={soundEnabled ? 'Mute alert sounds' : 'Enable alert sounds'}
+                aria-label={
+                  soundEnabled ? 'Mute alert sounds' : 'Enable alert sounds'
+                }
               >
                 {soundEnabled ? (
-                  <Volume2 size={16} aria-hidden="true" style={{ color: 'var(--color-emergency-icon)' }} />
+                  <Volume2
+                    size={16}
+                    aria-hidden="true"
+                    style={{ color: 'var(--color-emergency-icon)' }}
+                  />
                 ) : (
-                  <VolumeX size={16} aria-hidden="true" style={{ color: 'var(--color-emergency-icon)' }} />
+                  <VolumeX
+                    size={16}
+                    aria-hidden="true"
+                    style={{ color: 'var(--color-emergency-icon)' }}
+                  />
                 )}
                 <span>Sound: {soundEnabled ? 'ON' : 'OFF'}</span>
               </button>
@@ -317,7 +377,10 @@ export function StaffDashboardPage() {
                         >
                           {emg.patientToken || 'EMG'}
                         </span>
-                        <span className="font-black text-base" style={{ color: 'var(--color-emergency-text)' }}>
+                        <span
+                          className="font-black text-base"
+                          style={{ color: 'var(--color-emergency-text)' }}
+                        >
                           {emg.patientName || 'Patient in Distress'}
                         </span>
                         <span
@@ -337,7 +400,10 @@ export function StaffDashboardPage() {
                           {emg.landmark}
                         </span>
                         {emg.symptoms?.length > 0 && (
-                          <span className="font-bold" style={{ color: 'var(--color-emergency-text)' }}>
+                          <span
+                            className="font-bold"
+                            style={{ color: 'var(--color-emergency-text)' }}
+                          >
                             [{emg.symptoms.join(', ')}]
                           </span>
                         )}
@@ -398,11 +464,15 @@ export function StaffDashboardPage() {
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--color-border)] pb-3.5">
             <div>
-              <h2 id="dept-controls-title" className="text-lg font-black text-[var(--color-text)]">
+              <h2
+                id="dept-controls-title"
+                className="text-lg font-black text-[var(--color-text)]"
+              >
                 Department Wait Times & Status
               </h2>
               <p className="text-xs sm:text-sm text-[var(--color-text-muted)]">
-                Changes persist to live store and sync instantly to open patient tabs
+                Changes persist to live store and sync instantly to open patient
+                tabs
               </p>
             </div>
 
@@ -453,7 +523,10 @@ export function StaffDashboardPage() {
                     onClick={() =>
                       setDepartmentWaitTime(
                         activeDept.departmentId,
-                        Math.max(2, activeDept.estimatedWaitPerPatientMinutes - 5)
+                        Math.max(
+                          2,
+                          activeDept.estimatedWaitPerPatientMinutes - 5
+                        )
                       )
                     }
                     className="btn btn-secondary min-h-12 w-14 rounded-xl font-black text-lg p-0"
@@ -466,7 +539,9 @@ export function StaffDashboardPage() {
                     <span className="text-2xl font-black text-[var(--color-text)]">
                       {activeDept.estimatedWaitPerPatientMinutes}
                     </span>
-                    <span className="text-xs font-bold text-[var(--color-text-muted)] ml-1">mins / patient</span>
+                    <span className="text-xs font-bold text-[var(--color-text-muted)] ml-1">
+                      mins / patient
+                    </span>
                   </div>
 
                   <button
@@ -597,8 +672,15 @@ export function StaffDashboardPage() {
           className="p-4 sm:p-5 rounded-2xl bg-[var(--color-surface)] border-2 border-[var(--color-border)] shadow-xs flex flex-col gap-3"
         >
           <div className="flex items-center gap-2">
-            <Sliders size={20} className="text-[var(--color-primary-500)]" aria-hidden="true" />
-            <h2 id="smart-queue-title" className="text-base sm:text-lg font-black text-[var(--color-text)]">
+            <Sliders
+              size={20}
+              className="text-[var(--color-primary-500)]"
+              aria-hidden="true"
+            />
+            <h2
+              id="smart-queue-title"
+              className="text-base sm:text-lg font-black text-[var(--color-text)]"
+            >
               Smart Triage & Priority Rules Engine
             </h2>
           </div>
@@ -609,7 +691,10 @@ export function StaffDashboardPage() {
                 type="checkbox"
                 checked={smartSettings.prioritizeEmergency}
                 onChange={(e) =>
-                  setSmartSettings({ ...smartSettings, prioritizeEmergency: e.target.checked })
+                  setSmartSettings({
+                    ...smartSettings,
+                    prioritizeEmergency: e.target.checked,
+                  })
                 }
                 className="w-5 h-5 text-[var(--color-primary-500)] rounded-md cursor-pointer shrink-0"
               />
@@ -628,7 +713,10 @@ export function StaffDashboardPage() {
                 type="checkbox"
                 checked={smartSettings.prioritizeElderlyDisabled}
                 onChange={(e) =>
-                  setSmartSettings({ ...smartSettings, prioritizeElderlyDisabled: e.target.checked })
+                  setSmartSettings({
+                    ...smartSettings,
+                    prioritizeElderlyDisabled: e.target.checked,
+                  })
                 }
                 className="w-5 h-5 text-[var(--color-primary-500)] rounded-md cursor-pointer shrink-0"
               />
@@ -647,7 +735,10 @@ export function StaffDashboardPage() {
                 type="checkbox"
                 checked={smartSettings.autoRecalculateWaitTimes}
                 onChange={(e) =>
-                  setSmartSettings({ ...smartSettings, autoRecalculateWaitTimes: e.target.checked })
+                  setSmartSettings({
+                    ...smartSettings,
+                    autoRecalculateWaitTimes: e.target.checked,
+                  })
                 }
                 className="w-5 h-5 text-[var(--color-primary-500)] rounded-md cursor-pointer shrink-0"
               />
@@ -664,14 +755,21 @@ export function StaffDashboardPage() {
         </section>
 
         {/* ── 6. QUEUE TABLE & ACTIONS ────────────────────────────────────────── */}
-        <section aria-labelledby="queue-table-title" className="flex flex-col gap-3">
+        <section
+          aria-labelledby="queue-table-title"
+          className="flex flex-col gap-3"
+        >
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div>
-              <h2 id="queue-table-title" className="text-xl sm:text-2xl font-black text-[var(--color-text)]">
+              <h2
+                id="queue-table-title"
+                className="text-xl sm:text-2xl font-black text-[var(--color-text)]"
+              >
                 Live Queue Roster ({queueEntries.length})
               </h2>
               <p className="text-xs sm:text-sm text-[var(--color-text-muted)]">
-                Select patient actions to update live consultations and notify patients
+                Select patient actions to update live consultations and notify
+                patients
               </p>
             </div>
           </div>
@@ -682,14 +780,30 @@ export function StaffDashboardPage() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-[var(--color-surface-2)] border-b-2 border-[var(--color-border)] text-xs font-black uppercase tracking-wider text-[var(--color-text-muted)]">
-                    <th scope="col" className="px-4 py-3.5">Token</th>
-                    <th scope="col" className="px-4 py-3.5">Patient Name</th>
-                    <th scope="col" className="px-4 py-3.5">Purpose</th>
-                    <th scope="col" className="px-4 py-3.5">A11y Needs</th>
-                    <th scope="col" className="px-4 py-3.5">Status</th>
-                    <th scope="col" className="px-4 py-3.5">Wait Time</th>
-                    <th scope="col" className="px-4 py-3.5">Priority Logic</th>
-                    <th scope="col" className="px-4 py-3.5 text-right">Actions</th>
+                    <th scope="col" className="px-4 py-3.5">
+                      Token
+                    </th>
+                    <th scope="col" className="px-4 py-3.5">
+                      Patient Name
+                    </th>
+                    <th scope="col" className="px-4 py-3.5">
+                      Purpose
+                    </th>
+                    <th scope="col" className="px-4 py-3.5">
+                      A11y Needs
+                    </th>
+                    <th scope="col" className="px-4 py-3.5">
+                      Status
+                    </th>
+                    <th scope="col" className="px-4 py-3.5">
+                      Wait Time
+                    </th>
+                    <th scope="col" className="px-4 py-3.5">
+                      Priority Logic
+                    </th>
+                    <th scope="col" className="px-4 py-3.5 text-right">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--color-border)] text-sm">
@@ -697,15 +811,22 @@ export function StaffDashboardPage() {
                     const isInConsult = patient.status === 'in_progress';
                     const isTurnSoon = patient.status === 'turn_soon';
                     const isCompleted = patient.status === 'completed';
-                    const explanation = getPatientPriorityExplanation(patient, smartSettings);
+                    const explanation = getPatientPriorityExplanation(
+                      patient,
+                      smartSettings
+                    );
 
                     return (
                       <tr
                         key={patient.id}
                         className={[
                           'transition-colors hover:bg-[var(--color-surface-2)]',
-                          patient.isEmergency ? 'border-2 border-[var(--color-emergency-border)] bg-[var(--color-emergency-bg)] text-[var(--color-emergency-text)]' : '',
-                          isInConsult ? 'bg-[var(--color-primary-50)] dark:bg-[var(--color-primary-950)] font-semibold' : '',
+                          patient.isEmergency
+                            ? 'border-2 border-[var(--color-emergency-border)] bg-[var(--color-emergency-bg)] text-[var(--color-emergency-text)]'
+                            : '',
+                          isInConsult
+                            ? 'bg-[var(--color-primary-50)] dark:bg-[var(--color-primary-950)] font-semibold'
+                            : '',
                         ].join(' ')}
                       >
                         {/* Token */}
@@ -732,20 +853,27 @@ export function StaffDashboardPage() {
 
                         {/* Accessibility Needs */}
                         <td className="px-4 py-3.5">
-                          {patient.accessibilityNeeds && patient.accessibilityNeeds.length > 0 ? (
+                          {patient.accessibilityNeeds &&
+                          patient.accessibilityNeeds.length > 0 ? (
                             <div className="flex items-center gap-1.5 flex-wrap">
                               {patient.accessibilityNeeds.map((need, idx) => (
                                 <span
                                   key={idx}
                                   className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 border border-blue-300"
                                 >
-                                  <Accessibility size={12} className="shrink-0" aria-hidden="true" />
+                                  <Accessibility
+                                    size={12}
+                                    className="shrink-0"
+                                    aria-hidden="true"
+                                  />
                                   <span>{need.replace('_', ' ')}</span>
                                 </span>
                               ))}
                             </div>
                           ) : (
-                            <span className="text-xs text-[var(--color-text-muted)] font-mono">—</span>
+                            <span className="text-xs text-[var(--color-text-muted)] font-mono">
+                              —
+                            </span>
                           )}
                         </td>
 
@@ -756,23 +884,23 @@ export function StaffDashboardPage() {
                               patient.isEmergency
                                 ? 'danger'
                                 : isInConsult
-                                ? 'success'
-                                : isTurnSoon
-                                ? 'info'
-                                : isCompleted
-                                ? 'neutral'
-                                : 'warning'
+                                  ? 'success'
+                                  : isTurnSoon
+                                    ? 'info'
+                                    : isCompleted
+                                      ? 'neutral'
+                                      : 'warning'
                             }
                             label={
                               patient.isEmergency
                                 ? 'Emergency'
                                 : isInConsult
-                                ? 'In Consultation'
-                                : isTurnSoon
-                                ? 'Next in Line'
-                                : isCompleted
-                                ? 'Completed'
-                                : 'Waiting'
+                                  ? 'In Consultation'
+                                  : isTurnSoon
+                                    ? 'Next in Line'
+                                    : isCompleted
+                                      ? 'Completed'
+                                      : 'Waiting'
                             }
                           />
                         </td>
@@ -780,7 +908,9 @@ export function StaffDashboardPage() {
                         {/* Wait Time */}
                         <td className="px-4 py-3.5 font-bold text-[var(--color-text)]">
                           {isInConsult || isCompleted ? (
-                            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">—</span>
+                            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+                              —
+                            </span>
                           ) : (
                             `${patient.estimatedWaitMinutes} min`
                           )}
@@ -792,15 +922,19 @@ export function StaffDashboardPage() {
                             <button
                               type="button"
                               onClick={() =>
-                                setActiveWhyPopover(activeWhyPopover === patient.id ? null : patient.id)
+                                setActiveWhyPopover(
+                                  activeWhyPopover === patient.id
+                                    ? null
+                                    : patient.id
+                                )
                               }
                               className={[
                                 'inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-lg border transition-all cursor-pointer',
                                 explanation.level === 'emergency'
                                   ? 'bg-red-100 text-red-900 border-red-300'
                                   : explanation.level === 'priority'
-                                  ? 'bg-purple-100 text-purple-900 border-purple-300'
-                                  : 'bg-[var(--color-surface-2)] text-[var(--color-text-muted)] border-[var(--color-border)]',
+                                    ? 'bg-purple-100 text-purple-900 border-purple-300'
+                                    : 'bg-[var(--color-surface-2)] text-[var(--color-text-muted)] border-[var(--color-border)]',
                               ].join(' ')}
                               aria-label={`Why is patient ${patient.token} in this position?`}
                             >
@@ -823,7 +957,9 @@ export function StaffDashboardPage() {
                                     <X size={14} />
                                   </button>
                                 </div>
-                                <p className="leading-snug">{explanation.reason}</p>
+                                <p className="leading-snug">
+                                  {explanation.reason}
+                                </p>
                               </div>
                             )}
                           </div>
@@ -838,7 +974,9 @@ export function StaffDashboardPage() {
                                   variant="secondary"
                                   size="sm"
                                   icon={<Check size={14} />}
-                                  onClick={() => completePatientConsultation(patient.token)}
+                                  onClick={() =>
+                                    completePatientConsultation(patient.token)
+                                  }
                                   className="font-bold bg-emerald-50 text-emerald-950 border-emerald-300 hover:bg-emerald-100 whitespace-normal break-words"
                                 >
                                   Completed
@@ -846,7 +984,9 @@ export function StaffDashboardPage() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => markPatientMissed(patient.token)}
+                                  onClick={() =>
+                                    markPatientMissed(patient.token)
+                                  }
                                   className="font-bold text-amber-800 bg-amber-50 border border-amber-300 hover:bg-amber-100 whitespace-normal break-words text-xs"
                                   title="Patient called but not present"
                                 >
@@ -862,21 +1002,36 @@ export function StaffDashboardPage() {
                                   <div className="hidden group-hover:flex group-focus-within:flex flex-col absolute right-0 top-full mt-1 z-30 bg-white border border-slate-200 shadow-xl rounded-xl p-1.5 text-xs min-w-36 text-left">
                                     <button
                                       type="button"
-                                      onClick={() => routePatientOnward(patient.token, 'Central Pathology Lab')}
+                                      onClick={() =>
+                                        routePatientOnward(
+                                          patient.token,
+                                          'Central Pathology Lab'
+                                        )
+                                      }
                                       className="px-2.5 py-1.5 text-left rounded-lg hover:bg-slate-100 font-medium text-slate-800"
                                     >
                                       → Route to Lab
                                     </button>
                                     <button
                                       type="button"
-                                      onClick={() => routePatientOnward(patient.token, 'Radiology & X-Ray Wing')}
+                                      onClick={() =>
+                                        routePatientOnward(
+                                          patient.token,
+                                          'Radiology & X-Ray Wing'
+                                        )
+                                      }
                                       className="px-2.5 py-1.5 text-left rounded-lg hover:bg-slate-100 font-medium text-slate-800"
                                     >
                                       → Route to X-Ray
                                     </button>
                                     <button
                                       type="button"
-                                      onClick={() => routePatientOnward(patient.token, 'Pharmacy Counter 3')}
+                                      onClick={() =>
+                                        routePatientOnward(
+                                          patient.token,
+                                          'Pharmacy (G-04)'
+                                        )
+                                      }
                                       className="px-2.5 py-1.5 text-left rounded-lg hover:bg-slate-100 font-medium text-slate-800"
                                     >
                                       → Route to Pharmacy
@@ -890,7 +1045,9 @@ export function StaffDashboardPage() {
                                   variant="primary"
                                   size="sm"
                                   icon={<Play size={13} />}
-                                  onClick={() => startPatientConsultation(patient.token)}
+                                  onClick={() =>
+                                    startPatientConsultation(patient.token)
+                                  }
                                   className="font-bold whitespace-normal break-words"
                                 >
                                   Start
@@ -907,7 +1064,9 @@ export function StaffDashboardPage() {
                                 <div className="flex flex-col gap-0.5">
                                   <button
                                     type="button"
-                                    onClick={() => movePatientQueue(patient.token, 'up')}
+                                    onClick={() =>
+                                      movePatientQueue(patient.token, 'up')
+                                    }
                                     className="p-1 rounded bg-[var(--color-surface-2)] hover:bg-[var(--color-border)] text-[var(--color-text)]"
                                     aria-label="Move patient up in queue"
                                   >
@@ -915,7 +1074,9 @@ export function StaffDashboardPage() {
                                   </button>
                                   <button
                                     type="button"
-                                    onClick={() => movePatientQueue(patient.token, 'down')}
+                                    onClick={() =>
+                                      movePatientQueue(patient.token, 'down')
+                                    }
                                     className="p-1 rounded bg-[var(--color-surface-2)] hover:bg-[var(--color-border)] text-[var(--color-text)]"
                                     aria-label="Move patient down in queue"
                                   >
@@ -924,7 +1085,9 @@ export function StaffDashboardPage() {
                                 </div>
                               </>
                             ) : (
-                              <span className="text-xs font-bold text-slate-400">Archived</span>
+                              <span className="text-xs font-bold text-slate-400">
+                                Archived
+                              </span>
                             )}
                           </div>
                         </td>
@@ -942,7 +1105,10 @@ export function StaffDashboardPage() {
               const isInConsult = patient.status === 'in_progress';
               const isTurnSoon = patient.status === 'turn_soon';
               const isCompleted = patient.status === 'completed';
-              const explanation = getPatientPriorityExplanation(patient, smartSettings);
+              const explanation = getPatientPriorityExplanation(
+                patient,
+                smartSettings
+              );
 
               return (
                 <div
@@ -952,8 +1118,8 @@ export function StaffDashboardPage() {
                     patient.isEmergency
                       ? 'border-[3px] border-[var(--color-emergency-border)] bg-[var(--color-emergency-bg)] text-[var(--color-emergency-text)]'
                       : isInConsult
-                      ? 'border-2 border-[var(--color-primary-500)] bg-[var(--color-primary-50)] dark:bg-[var(--color-primary-950)]'
-                      : 'border-[var(--color-border)]',
+                        ? 'border-2 border-[var(--color-primary-500)] bg-[var(--color-primary-50)] dark:bg-[var(--color-primary-950)]'
+                        : 'border-[var(--color-border)]',
                   ].join(' ')}
                 >
                   {/* Token and Name */}
@@ -976,23 +1142,23 @@ export function StaffDashboardPage() {
                         patient.isEmergency
                           ? 'danger'
                           : isInConsult
-                          ? 'success'
-                          : isTurnSoon
-                          ? 'info'
-                          : isCompleted
-                          ? 'neutral'
-                          : 'warning'
+                            ? 'success'
+                            : isTurnSoon
+                              ? 'info'
+                              : isCompleted
+                                ? 'neutral'
+                                : 'warning'
                       }
                       label={
                         patient.isEmergency
                           ? 'Emergency'
                           : isInConsult
-                          ? 'In Consultation'
-                          : isTurnSoon
-                          ? 'Next in Line'
-                          : isCompleted
-                          ? 'Completed'
-                          : 'Waiting'
+                            ? 'In Consultation'
+                            : isTurnSoon
+                              ? 'Next in Line'
+                              : isCompleted
+                                ? 'Completed'
+                                : 'Waiting'
                       }
                     />
 
@@ -1000,7 +1166,9 @@ export function StaffDashboardPage() {
                     {!isCompleted && (
                       <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-lg bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[var(--color-text)]">
                         <Clock size={12} aria-hidden="true" />
-                        {isInConsult ? 'Attending now' : `Wait: ${patient.estimatedWaitMinutes}m`}
+                        {isInConsult
+                          ? 'Attending now'
+                          : `Wait: ${patient.estimatedWaitMinutes}m`}
                       </span>
                     )}
 
@@ -1010,19 +1178,24 @@ export function StaffDashboardPage() {
                     </span>
 
                     {/* Accessibility Badges */}
-                    {patient.accessibilityNeeds && patient.accessibilityNeeds.length > 0 && (
-                      <>
-                        {patient.accessibilityNeeds.map((need, idx) => (
-                          <span
-                            key={idx}
-                            className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2 py-0.5 rounded-lg bg-blue-100 text-blue-900 dark:bg-blue-950 dark:text-blue-200 border border-blue-300 dark:border-blue-800"
-                          >
-                            <Accessibility size={12} className="shrink-0" aria-hidden="true" />
-                            <span>{need.replace('_', ' ')}</span>
-                          </span>
-                        ))}
-                      </>
-                    )}
+                    {patient.accessibilityNeeds &&
+                      patient.accessibilityNeeds.length > 0 && (
+                        <>
+                          {patient.accessibilityNeeds.map((need, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2 py-0.5 rounded-lg bg-blue-100 text-blue-900 dark:bg-blue-950 dark:text-blue-200 border border-blue-300 dark:border-blue-800"
+                            >
+                              <Accessibility
+                                size={12}
+                                className="shrink-0"
+                                aria-hidden="true"
+                              />
+                              <span>{need.replace('_', ' ')}</span>
+                            </span>
+                          ))}
+                        </>
+                      )}
 
                     {/* Priority Tag */}
                     <span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-purple-100 text-purple-900 dark:bg-purple-950 dark:text-purple-200 border border-purple-300 dark:border-purple-800">
@@ -1032,7 +1205,10 @@ export function StaffDashboardPage() {
 
                   {/* Plain language priority explanation */}
                   <div className="p-2.5 rounded-xl bg-[var(--color-surface-2)] text-xs text-[var(--color-text)] leading-snug flex items-start gap-1.5">
-                    <Info size={15} className="shrink-0 text-[var(--color-primary-500)] mt-0.5" />
+                    <Info
+                      size={15}
+                      className="shrink-0 text-[var(--color-primary-500)] mt-0.5"
+                    />
                     <span>{explanation.reason}</span>
                   </div>
 
@@ -1044,7 +1220,9 @@ export function StaffDashboardPage() {
                           variant="secondary"
                           fullWidth
                           icon={<Check size={16} />}
-                          onClick={() => completePatientConsultation(patient.token)}
+                          onClick={() =>
+                            completePatientConsultation(patient.token)
+                          }
                           className="font-bold min-h-12 bg-emerald-700 hover:bg-emerald-800 text-white border-2 border-emerald-900 whitespace-normal break-words"
                         >
                           Mark Consultation Complete
@@ -1059,7 +1237,12 @@ export function StaffDashboardPage() {
                           </Button>
                           <Button
                             variant="ghost"
-                            onClick={() => routePatientOnward(patient.token, 'Central Pathology Lab')}
+                            onClick={() =>
+                              routePatientOnward(
+                                patient.token,
+                                'Central Pathology Lab'
+                              )
+                            }
                             className="font-bold min-h-11 border border-blue-300 bg-blue-50 text-blue-900 text-xs"
                           >
                             Route to Lab →
@@ -1072,7 +1255,9 @@ export function StaffDashboardPage() {
                           variant="primary"
                           fullWidth
                           icon={<Play size={15} />}
-                          onClick={() => startPatientConsultation(patient.token)}
+                          onClick={() =>
+                            startPatientConsultation(patient.token)
+                          }
                           className="font-bold min-h-12 whitespace-normal break-words"
                         >
                           Start Consultation
@@ -1088,7 +1273,9 @@ export function StaffDashboardPage() {
                           <div className="grid grid-cols-2 gap-1">
                             <button
                               type="button"
-                              onClick={() => movePatientQueue(patient.token, 'up')}
+                              onClick={() =>
+                                movePatientQueue(patient.token, 'up')
+                              }
                               className="min-h-12 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] text-[var(--color-text)] font-bold text-xs flex items-center justify-center gap-1"
                               aria-label="Move up"
                             >
@@ -1097,7 +1284,9 @@ export function StaffDashboardPage() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => movePatientQueue(patient.token, 'down')}
+                              onClick={() =>
+                                movePatientQueue(patient.token, 'down')
+                              }
                               className="min-h-12 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] text-[var(--color-text)] font-bold text-xs flex items-center justify-center gap-1"
                               aria-label="Move down"
                             >

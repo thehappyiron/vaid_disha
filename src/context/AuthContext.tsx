@@ -1,3 +1,4 @@
+import { findDepartmentByName } from '../data/departments';
 import {
   createContext,
   useContext,
@@ -16,7 +17,10 @@ export function deriveNameFromEmail(email?: string): string {
   if (!email) return 'Registered Patient';
   const localPart = email.split('@')[0];
   if (!localPart) return 'Registered Patient';
-  const cleaned = localPart.replace(/[0-9]+/g, ' ').replace(/[._-]+/g, ' ').trim();
+  const cleaned = localPart
+    .replace(/[0-9]+/g, ' ')
+    .replace(/[._-]+/g, ' ')
+    .trim();
   if (!cleaned) return 'Registered Patient';
   const words = cleaned
     .split(/\s+/)
@@ -48,7 +52,23 @@ function loadStoredUser(): UserProfile | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as UserProfile;
+    const profile = JSON.parse(raw) as UserProfile;
+    return {
+      ...profile,
+      visits: profile.visits?.map((visit) => {
+        const dept = findDepartmentByName(
+          visit.departmentName,
+          visit.doctorName
+        );
+        return dept
+          ? {
+              ...visit,
+              departmentName: dept.name,
+              doctorName: dept.doctorName || visit.doctorName,
+            }
+          : visit;
+      }),
+    };
   } catch {
     return null;
   }
@@ -119,7 +139,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return guestUser;
   };
 
-  const loginAsStaff = async (staffId: string, _password?: string): Promise<boolean> => {
+  const loginAsStaff = async (
+    staffId: string,
+    _password?: string
+  ): Promise<boolean> => {
     await new Promise((resolve) => setTimeout(resolve, 350));
     const staffUser: UserProfile = {
       ...MOCK_STAFF_USER,

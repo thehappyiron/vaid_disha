@@ -1,3 +1,6 @@
+import i18n from '../i18n';
+import { getDepartment } from '../data/departments';
+import { computeRoute } from './pathfindingService';
 import type {
   Department,
   NavigationStep,
@@ -13,197 +16,122 @@ import {
   KNOWN_LOCATIONS,
   SYMPTOM_DEPARTMENT_RULES,
 } from '../data/hospitalData';
-import { ensurePatientInQueue } from './liveStore';
+import { ensurePatientInQueue, getLiveStoreSnapshot } from './liveStore';
 import { syncSlipToSupabase, syncVisitToSupabase } from './supabaseClient';
 
 // ─── Utility ─────────────────────────────────────────────────────────────────
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-let tokenCounter = 1000;
-
-function generateToken(prefix: string): string {
-  tokenCounter += 1;
-  return `${prefix}-${tokenCounter}`;
+async function generateToken(prefix: string): Promise<string> {
+  const issue = () => {
+    const key = `vd-token-counter-${prefix}`;
+    const saved = Number(localStorage.getItem(key));
+    let counter = Number.isFinite(saved) ? Math.max(1000, saved) : 1000;
+    const tokens = new Set(
+      getLiveStoreSnapshot().queue.map((entry) => entry.token)
+    );
+    try {
+      const slips = JSON.parse(
+        localStorage.getItem('vd-patient-slips') || '[]'
+      ) as Slip[];
+      slips.forEach((slip) => tokens.add(slip.token));
+    } catch {
+      /* A corrupt history must not reuse an active queue token. */
+    }
+    let token: string;
+    do {
+      token = `${prefix}-${++counter}`;
+    } while (tokens.has(token));
+    localStorage.setItem(key, String(counter));
+    return token;
+  };
+  // Reserve the display number before saving the slip; same-browser tabs
+  // cannot issue the same token while the local demo is running.
+  if (typeof navigator !== 'undefined' && navigator.locks) {
+    return navigator.locks.request('vd-token-issuer', issue);
+  }
+  return issue();
 }
 
-function generateStepsFromEntrance(dept: Department, isAccessibleRoute = false): NavigationStep[] {
-  const steps: NavigationStep[] = [];
-
-  if (dept.building === 'A' && dept.floor === 0) {
-    steps.push({
-      stepNumber: 1,
-      instructionKey: 'nav.enter_main_entrance',
-      directionIcon: 'arrow-up',
-    });
-    steps.push({
-      stepNumber: 2,
-      instructionKey: 'nav.turn_left',
-      landmark: dept.landmark,
-      directionIcon: 'arrow-left',
-    });
-    steps.push({
-      stepNumber: 3,
-      instructionKey: 'nav.arrive_dept',
-      instructionParams: { room: dept.roomNumbers[0] },
-      directionIcon: 'map-pin',
-    });
-  } else if (dept.building === 'A') {
-    steps.push({
-      stepNumber: 1,
-      instructionKey: 'nav.enter_main_entrance',
-      directionIcon: 'arrow-up',
-    });
-    steps.push({
-      stepNumber: 2,
-      instructionKey: 'nav.take_stairs_or_elevator',
-      instructionParams: { floor: dept.floor },
-      directionIcon: isAccessibleRoute ? 'elevator' : (dept.floor > 0 ? 'elevator' : 'stairs'),
-    });
-    steps.push({
-      stepNumber: 3,
-      instructionKey: 'nav.arrive_dept',
-      instructionParams: { room: dept.roomNumbers[0] },
-      landmark: dept.landmark,
-      directionIcon: 'map-pin',
-    });
-  } else if (dept.building === 'E') {
-    steps.push({
-      stepNumber: 1,
-      instructionKey: 'nav.exit_main_gate',
-      directionIcon: 'arrow-up',
-    });
-    steps.push({
-      stepNumber: 2,
-      instructionKey: 'nav.turn_left_building_e',
-      landmark: dept.landmark,
-      directionIcon: 'arrow-left',
-    });
-    steps.push({
-      stepNumber: 3,
-      instructionKey: 'nav.arrive_dept',
-      instructionParams: { room: dept.roomNumbers[0] },
-      directionIcon: 'map-pin',
-    });
-  } else {
-    // Multi-building route
-    steps.push({
-      stepNumber: 1,
-      instructionKey: 'nav.enter_main_entrance',
-      directionIcon: 'arrow-up',
-    });
-    steps.push({
-      stepNumber: 2,
-      instructionKey: 'nav.walk_to_building',
-      instructionParams: { building: dept.building },
-      directionIcon: 'arrow-right',
-    });
-    if (dept.floor !== 0) {
-      steps.push({
-        stepNumber: 3,
-        instructionKey: 'nav.take_stairs_or_elevator',
-        instructionParams: { floor: dept.floor },
-        directionIcon: 'elevator',
-      });
-      steps.push({
-        stepNumber: 4,
-        instructionKey: 'nav.arrive_dept',
-        instructionParams: { room: dept.roomNumbers[0] },
-        landmark: dept.landmark,
-        directionIcon: 'map-pin',
-      });
-    } else {
-      steps.push({
-        stepNumber: 3,
-        instructionKey: 'nav.arrive_dept',
-        instructionParams: { room: dept.roomNumbers[0] },
-        landmark: dept.landmark,
-        directionIcon: 'map-pin',
-      });
-    }
-  }
-
-  return steps;
+function generateStepsFromEntrance(
+  dept: Department,
+  isAccessibleRoute = false
+): NavigationStep[] {
+  return stepsForRoute('entrance-main', dept, isAccessibleRoute);
 }
 
-function generateHumanReadableDirection(dept: Department, isAccessible: boolean): string {
-  const room = dept.roomNumbers[0] || '101';
-  const turnDirection = dept.wing?.includes('West') ? 'left' : 'right';
-
-  if (dept.floor === 0) {
-    if (dept.building === 'E') {
-      return `Exit the main gate, take the covered ramp on your left directly into Building E (Casualty & Emergency), Room ${room}.`;
-    }
-    if (isAccessible) {
-      return `Use the step-free entrance ramp at Main Lobby A, proceed straight 20 meters, turn left past the Reception Desk to Room ${room}.`;
-    }
-    return `Enter through the main hospital entrance, proceed straight past the main lobby, turn left to Room ${room}.`;
-  }
-
-  if (isAccessible) {
-    return `Take the ramp on your left to the Main Elevator Bank, take the lift to Floor ${dept.floor}, turn ${turnDirection} down the accessible corridor to Room ${room} (Priority lift access, step-free route).`;
-  }
-
-  return `Take the lift on your left to Floor ${dept.floor}, turn ${turnDirection}, Room ${room}.`;
+function stepsForRoute(
+  start: string,
+  dept: Department,
+  accessible = false
+): NavigationStep[] {
+  const route = computeRoute(start, dept.nodeId, { excludeStairs: accessible });
+  return (route?.steps || []).map((step) => ({
+    stepNumber: step.stepNumber,
+    instructionKey: step.templateKey,
+    instructionParams: step.params,
+    landmark: step.toNode.landmark,
+    directionIcon: step.icon,
+  }));
 }
 
-function generateStepsFromLocation(from: KnownLocation, dept: Department): NavigationStep[] {
-  const steps: NavigationStep[] = [];
-  let stepNum = 1;
-
-  // If same building and floor
-  if (from.building === dept.building && from.floor === dept.floor) {
-    steps.push({
-      stepNumber: stepNum++,
-      instructionKey: 'nav.you_are_close',
-      directionIcon: 'arrow-right',
-    });
-    steps.push({
-      stepNumber: stepNum++,
-      instructionKey: 'nav.arrive_dept',
-      instructionParams: { room: dept.roomNumbers[0] },
-      landmark: dept.landmark,
-      directionIcon: 'map-pin',
-    });
-    return steps;
-  }
-
-  // Different building
-  if (from.building !== dept.building) {
-    steps.push({
-      stepNumber: stepNum++,
-      instructionKey: 'nav.go_to_main_corridor',
-      directionIcon: 'arrow-right',
-    });
-    steps.push({
-      stepNumber: stepNum++,
-      instructionKey: 'nav.walk_to_building',
-      instructionParams: { building: dept.building },
-      directionIcon: 'arrow-right',
-    });
-  }
-
-  // Different floor
-  if (from.floor !== dept.floor) {
-    steps.push({
-      stepNumber: stepNum++,
-      instructionKey: 'nav.take_stairs_or_elevator',
-      instructionParams: { floor: dept.floor },
-      directionIcon: dept.floor > from.floor ? 'elevator' : 'stairs',
-    });
-  }
-
-  steps.push({
-    stepNumber: stepNum++,
-    instructionKey: 'nav.arrive_dept',
-    instructionParams: { room: dept.roomNumbers[0] },
-    landmark: dept.landmark,
-    directionIcon: 'map-pin',
+function generateHumanReadableDirection(
+  dept: Department,
+  isAccessible: boolean
+): string {
+  const route = computeRoute('entrance-main', dept.nodeId, {
+    excludeStairs: isAccessible,
   });
-
-  return steps;
+  if (!route) return '';
+  const transfer = route.edges.find((edge) => edge.type !== 'corridor');
+  const room = dept.roomNumbers[0];
+  const destination =
+    i18n.t(dept.nameKey) +
+    (/^(\d+|G-\d+)$/.test(room)
+      ? ` · ${i18n.t('hospital.map.room', { room })}`
+      : '');
+  return [
+    i18n.t(`hospital.directions.${transfer?.type || 'same_floor'}`, {
+      floor: i18n.t(`guidance.floor_${dept.floor}`),
+    }),
+    i18n.t('hospital.directions.destination', {
+      destination,
+      landmark: i18n.t(route.destinationNode.landmarkKey || '', {
+        defaultValue: dept.landmark,
+      }),
+    }),
+  ].join(' ');
 }
 
-// ─── Public service functions (async mock — ready for API replacement) ────────
+function generateStepsFromLocation(
+  from: KnownLocation,
+  dept: Department
+): NavigationStep[] {
+  return stepsForRoute(from.id, dept);
+}
+
+/** Refresh stored demo metadata when the sample floor plan changes. */
+export function normalizeSlip(slip: Slip): Slip {
+  const department = getDepartment(slip.department?.id);
+  if (!department) return slip;
+  const accessible =
+    slip.accessibilityNeeds?.some(
+      (need) => need === 'wheelchair' || need === 'walking_difficulty'
+    ) || false;
+  return {
+    ...slip,
+    department,
+    doctorName: department.doctorName,
+    roomNumber: department.roomNumbers[0],
+    floor: department.floor,
+    wing: department.wing,
+    steps: generateStepsFromEntrance(department, accessible),
+    humanReadableDirection: generateHumanReadableDirection(
+      department,
+      accessible
+    ),
+  };
+}
 
 export interface SymptomMatchResult {
   department: Department;
@@ -213,12 +141,16 @@ export interface SymptomMatchResult {
 }
 
 /** Suggest an appropriate hospital department based on patient symptom description */
-export async function suggestDepartmentFromSymptoms(symptoms: string): Promise<SymptomMatchResult> {
+export async function suggestDepartmentFromSymptoms(
+  symptoms: string
+): Promise<SymptomMatchResult> {
   await sleep(250);
   const cleanInput = symptoms.toLowerCase().trim();
 
   for (const rule of SYMPTOM_DEPARTMENT_RULES) {
-    const matched = rule.keywords.find((k) => cleanInput.includes(k.toLowerCase()));
+    const matched = rule.keywords.find((k) =>
+      cleanInput.includes(k.toLowerCase())
+    );
     if (matched) {
       const dept = DEPARTMENTS.find((d) => d.id === rule.departmentId);
       if (dept) {
@@ -233,11 +165,13 @@ export async function suggestDepartmentFromSymptoms(symptoms: string): Promise<S
   }
 
   // Fallback to General OPD Triage
-  const fallbackDept = DEPARTMENTS.find((d) => d.id === 'opd-general') || DEPARTMENTS[0];
+  const fallbackDept =
+    DEPARTMENTS.find((d) => d.id === 'opd-general') || DEPARTMENTS[0];
   return {
     department: fallbackDept,
     matchedKeyword: 'general health triage',
-    reason: 'General Medicine triage can examine your condition and refer you to specialized hospital wings as needed.',
+    reason:
+      'General Medicine triage can examine your condition and refer you to specialized hospital wings as needed.',
     confidence: 'fallback',
   };
 }
@@ -261,7 +195,9 @@ export async function searchPurposes(query: string): Promise<PurposeOption[]> {
 }
 
 /** Get departments by purpose */
-export async function getDepartmentsByPurpose(purposeId: string): Promise<Department[]> {
+export async function getDepartmentsByPurpose(
+  purposeId: string
+): Promise<Department[]> {
   await sleep(200);
   const purpose = PURPOSE_OPTIONS.find((p) => p.id === purposeId);
   if (!purpose) return [];
@@ -316,26 +252,9 @@ export async function generateSlip(
     purposeKey = purposeMap[v.purposeId] || 'purpose.new_opd';
   }
 
-  const department = DEPARTMENTS.find((d) => d.id === departmentId) || DEPARTMENTS[0];
+  const department = getDepartment(departmentId) || DEPARTMENTS[0];
 
-  const prefixLookup: Record<string, string> = {
-    'opd-cardiology': 'CARD',
-    'opd-ortho': 'ORTH',
-    'opd-neuro': 'NEUR',
-    'opd-eye': 'EYE',
-    'opd-ent': 'ENT',
-    'opd-derma': 'DERM',
-    'opd-pediatrics': 'PED',
-    'lab-blood': 'LAB',
-    'lab-radiology': 'SCAN',
-    'pharmacy': 'PHR',
-    'admission': 'ADM',
-    'discharge': 'DIS',
-    'emergency': 'EMG',
-    'billing': 'BIL',
-  };
-
-  const prefix = prefixLookup[department.id] || (department.category === 'consultation' ? 'OPD' : 'GEN');
+  const prefix = department.tokenPrefix;
 
   const waitMap: Record<string, number> = {
     emergency: 0,
@@ -351,25 +270,35 @@ export async function generateSlip(
     ['wheelchair', 'walking_difficulty', 'elderly_assistance'].includes(need)
   );
 
-  const humanDirection = generateHumanReadableDirection(department, isAccessible);
+  const humanDirection = generateHumanReadableDirection(
+    department,
+    isAccessible
+  );
   const steps = generateStepsFromEntrance(department, isAccessible);
 
   const waitMinutes = waitMap[department.category] ?? 20;
-  const peopleAhead = department.category === 'emergency' ? 0 : Math.max(1, Math.round(waitMinutes / 5));
-  const queueStatus = department.category === 'emergency'
-    ? 'in_progress'
-    : (waitMinutes <= 5 ? 'turn_soon' : 'waiting');
+  const peopleAhead =
+    department.category === 'emergency'
+      ? 0
+      : Math.max(1, Math.round(waitMinutes / 5));
+  const queueStatus =
+    department.category === 'emergency'
+      ? 'in_progress'
+      : waitMinutes <= 5
+        ? 'turn_soon'
+        : 'waiting';
 
-  const authRaw = typeof window !== 'undefined' ? localStorage.getItem('vd-auth-user') : null;
+  const authRaw =
+    typeof window !== 'undefined' ? localStorage.getItem('vd-auth-user') : null;
   const authUser = authRaw ? JSON.parse(authRaw) : null;
   const isGuest = authUser ? Boolean(authUser.isGuest) : true;
 
   const slip: Slip = {
-    id: `slip-${Date.now()}`,
+    id: `slip-${crypto.randomUUID()}`,
     generatedAt: new Date().toISOString(),
     patientPurposeKey: purposeKey,
     department,
-    token: generateToken(prefix),
+    token: await generateToken(prefix),
     estimatedWait: waitMinutes,
     peopleAhead,
     status: queueStatus,
@@ -386,7 +315,8 @@ export async function generateSlip(
     isGuest,
     userId: authUser?.id,
     patientEmail: patientEmail || authUser?.email,
-    additionalNoteKey: department.category === 'emergency' ? 'slip.note_emergency' : undefined,
+    additionalNoteKey:
+      department.category === 'emergency' ? 'slip.note_emergency' : undefined,
   };
 
   await saveSlip(slip, isGuest);
@@ -405,10 +335,11 @@ export async function saveSlip(slip: Slip, isGuest?: boolean): Promise<Slip> {
 
     const authRaw = localStorage.getItem('vd-auth-user');
     const authUser = authRaw ? JSON.parse(authRaw) : null;
-    const determinedIsGuest = isGuest ?? (authUser ? Boolean(authUser.isGuest) : true);
+    const determinedIsGuest =
+      isGuest ?? (authUser ? Boolean(authUser.isGuest) : true);
 
     const enrichedSlip: Slip = {
-      ...slip,
+      ...normalizeSlip(slip),
       isGuest: determinedIsGuest,
       userId: authUser?.id,
       patientEmail: slip.patientEmail || authUser?.email,
@@ -433,7 +364,8 @@ export async function saveSlip(slip: Slip, isGuest?: boolean): Promise<Slip> {
         token: enrichedSlip.token,
         patientName: enrichedSlip.patientName || 'Patient',
         departmentId: enrichedSlip.department.id,
-        roomNumber: enrichedSlip.roomNumber || enrichedSlip.department.roomNumbers?.[0],
+        roomNumber:
+          enrichedSlip.roomNumber || enrichedSlip.department.roomNumbers?.[0],
         email: enrichedSlip.patientEmail,
       }).catch((e) => console.warn('Failed to register slip in liveStore', e));
     }
@@ -443,10 +375,16 @@ export async function saveSlip(slip: Slip, isGuest?: boolean): Promise<Slip> {
     if (recipientEmail && enrichedSlip.token) {
       void import('./emailService').then((mail) => {
         const genDate = new Date(enrichedSlip.generatedAt);
-        const etaStart = new Date(genDate.getTime() + (enrichedSlip.estimatedWait || 15) * 60 * 1000);
+        const etaStart = new Date(
+          genDate.getTime() + (enrichedSlip.estimatedWait || 15) * 60 * 1000
+        );
         const etaEnd = new Date(etaStart.getTime() + 15 * 60 * 1000);
-        const deptLabel = enrichedSlip.department?.nameKey || 'General Consultation';
-        const docLabel = enrichedSlip.doctorName || enrichedSlip.department?.doctorName || 'Doctor on Duty';
+        const deptLabel =
+          enrichedSlip.department?.nameKey || 'General Consultation';
+        const docLabel =
+          enrichedSlip.doctorName ||
+          enrichedSlip.department?.doctorName ||
+          'Doctor on Duty';
 
         void mail.sendOpdSlipEmail({
           email: recipientEmail,
@@ -459,7 +397,9 @@ export async function saveSlip(slip: Slip, isGuest?: boolean): Promise<Slip> {
           date: mail.formatDate(genDate),
           etaStart: mail.formatClock(etaStart),
           etaEnd: mail.formatClock(etaEnd),
-          routeText: enrichedSlip.humanReadableDirection || 'Follow hospital OPD wayfinding signs.',
+          routeText:
+            enrichedSlip.humanReadableDirection ||
+            'Follow hospital OPD wayfinding signs.',
           slipId: enrichedSlip.id,
         });
 
@@ -478,13 +418,16 @@ export async function saveSlip(slip: Slip, isGuest?: boolean): Promise<Slip> {
     // If registered user, also append to visits in authUser
     if (authUser && !authUser.isGuest) {
       const existingVisits = authUser.visits || [];
-      const hasVisit = existingVisits.some((v: any) => v.id === slip.id || v.tokenNumber === slip.token);
+      const hasVisit = existingVisits.some(
+        (v: any) => v.id === slip.id || v.tokenNumber === slip.token
+      );
       if (!hasVisit) {
         const newVisit = {
           id: slip.id,
           date: new Date(slip.generatedAt).toISOString().split('T')[0],
           departmentName: slip.department.nameKey,
-          doctorName: slip.doctorName || slip.department.doctorName || 'Doctor on Duty',
+          doctorName:
+            slip.doctorName || slip.department.doctorName || 'Doctor on Duty',
           tokenNumber: slip.token,
           diagnosisSummary: `Outpatient consultation. Queue Token #${slip.token}. Room ${slip.roomNumber || slip.department.roomNumbers[0]}.`,
           status: 'in_progress' as const,
@@ -511,16 +454,16 @@ export async function getSlipById(id: string): Promise<Slip | null> {
     const raw = localStorage.getItem(SLIPS_STORAGE_KEY);
     const list: Slip[] = raw ? JSON.parse(raw) : [];
     const found = list.find((s) => s.id === id);
-    if (found) return found;
+    if (found) return normalizeSlip(found);
 
     // Check latest slip
     const latestRaw = localStorage.getItem(LATEST_SLIP_KEY);
     if (latestRaw) {
       const latest: Slip = JSON.parse(latestRaw);
-      if (latest.id === id || id === 'latest') return latest;
+      if (latest.id === id || id === 'latest') return normalizeSlip(latest);
     }
 
-    // Fallback realistic mock slip if ID doesn't exist
+    // The sample fallback uses the current hospital roster.
     const dept = DEPARTMENTS[1] || DEPARTMENTS[0];
     const fallbackSlip: Slip = {
       id: id || `slip-${Date.now()}`,
@@ -542,7 +485,7 @@ export async function getSlipById(id: string): Promise<Slip | null> {
       patientGender: 'Male',
       isGuest: false,
     };
-    return fallbackSlip;
+    return normalizeSlip(fallbackSlip);
   } catch {
     return null;
   }
@@ -553,7 +496,9 @@ export async function getPatientSlipHistory(userId?: string): Promise<Slip[]> {
   await sleep(150);
   try {
     const raw = localStorage.getItem(SLIPS_STORAGE_KEY);
-    const list: Slip[] = raw ? JSON.parse(raw) : [];
+    const list: Slip[] = raw
+      ? (JSON.parse(raw) as Slip[]).map(normalizeSlip)
+      : [];
     if (userId) {
       return list.filter((s) => s.userId === userId || !s.userId);
     }
@@ -601,7 +546,9 @@ export async function searchDepartments(query: string): Promise<Department[]> {
   const q = query.toLowerCase();
   return DEPARTMENTS.filter(
     (d) =>
-      d.nameKey.toLowerCase().includes(q) ||
+      d.name.toLowerCase().includes(q) ||
+      d.roomNumbers.some((room) => room.toLowerCase().includes(q)) ||
+      d.doctorName?.toLowerCase().includes(q) ||
       d.landmark.toLowerCase().includes(q) ||
       d.building.toLowerCase().includes(q)
   );

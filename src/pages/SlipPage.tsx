@@ -27,16 +27,18 @@ import {
   Mail,
 } from 'lucide-react';
 import { BaseLayout } from '../components/layout';
-import {
-  Button,
-  StatusBadge,
-  OptionCard,
-  Input,
-} from '../components/ui';
+import { Button, StatusBadge, OptionCard, Input } from '../components/ui';
 import { useAuth } from '../context/AuthContext';
-import { getSlipById } from '../services/hospitalService';
-import { usePatientLiveStatus, cancelPatientToken } from '../services/liveStore';
-import { sendTokenSharedEmail, sendCancellationEmail, isValidEmail } from '../services/emailService';
+import { getSlipById, normalizeSlip } from '../services/hospitalService';
+import {
+  usePatientLiveStatus,
+  cancelPatientToken,
+} from '../services/liveStore';
+import {
+  sendTokenSharedEmail,
+  sendCancellationEmail,
+  isValidEmail,
+} from '../services/emailService';
 import { textToSpeech } from '../services/voice';
 import type { Slip } from '../types';
 
@@ -63,7 +65,10 @@ function formatDate(iso: string): string {
   }
 }
 
-function floorLabel(floor?: number, t?: (key: string, opts?: any) => string): string {
+function floorLabel(
+  floor?: number,
+  t?: (key: string, opts?: any) => string
+): string {
   if (floor === undefined) return '';
   if (floor === 0) return t ? t('common.ground_floor') : 'Ground Floor';
   if (floor < 0) return `Floor B${Math.abs(floor)}`;
@@ -77,8 +82,10 @@ export function SlipPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
 
-  const [slip, setSlip] = useState<Slip | null>(
-    (location.state as { slip?: Slip })?.slip || null
+  const [slip, setSlip] = useState<Slip | null>(() =>
+    (location.state as { slip?: Slip })?.slip
+      ? normalizeSlip((location.state as { slip: Slip }).slip)
+      : null
   );
   const liveStatus = usePatientLiveStatus(slip?.token, slip?.department?.id);
   const [loading, setLoading] = useState(!slip);
@@ -91,7 +98,9 @@ export function SlipPage() {
   const [showAttendantModal, setShowAttendantModal] = useState(false);
   const [attendantEmail, setAttendantEmail] = useState('');
   const [attendantSending, setAttendantSending] = useState(false);
-  const [attendantFeedback, setAttendantFeedback] = useState<string | null>(null);
+  const [attendantFeedback, setAttendantFeedback] = useState<string | null>(
+    null
+  );
 
   const [showCancelModal, setShowCancelModal] = useState(() =>
     location.search.includes('cancel=1')
@@ -164,16 +173,21 @@ export function SlipPage() {
         token: slip.token,
         attendantEmail,
         patientName: slip.patientName || 'Patient',
-        doctorName: slip.doctorName || slip.department.doctorName || 'Doctor on Duty',
+        doctorName:
+          slip.doctorName || slip.department.doctorName || 'Doctor on Duty',
       });
-      setAttendantFeedback('Token shared successfully! They will receive live queue updates.');
+      setAttendantFeedback(
+        'Token shared successfully! They will receive live queue updates.'
+      );
       setTimeout(() => {
         setShowAttendantModal(false);
         setAttendantEmail('');
         setAttendantFeedback(null);
       }, 2500);
     } catch (err) {
-      setAttendantFeedback(err instanceof Error ? err.message : 'Failed to share token.');
+      setAttendantFeedback(
+        err instanceof Error ? err.message : 'Failed to share token.'
+      );
     } finally {
       setAttendantSending(false);
     }
@@ -186,7 +200,8 @@ export function SlipPage() {
       await sendCancellationEmail({
         token: slip.token,
         date: formatDate(slip.generatedAt),
-        doctorName: slip.doctorName || slip.department.doctorName || 'Doctor on Duty',
+        doctorName:
+          slip.doctorName || slip.department.doctorName || 'Doctor on Duty',
         patientName: slip.patientName,
       });
       setIsCancelled(true);
@@ -232,7 +247,9 @@ export function SlipPage() {
     }
 
     try {
-      await navigator.clipboard.writeText(`${shareText}\n${window.location.href}`);
+      await navigator.clipboard.writeText(
+        `${shareText}\n${window.location.href}`
+      );
       setCopiedToast(true);
       setTimeout(() => setCopiedToast(false), 3000);
     } catch {
@@ -325,7 +342,8 @@ export function SlipPage() {
     ctx.fillStyle = '#E69F00';
     const effectiveStatus = liveStatus.status || slip.status;
     const effectiveWait = liveStatus.estimatedWaitMinutes ?? slip.estimatedWait;
-    const effectivePeopleAhead = liveStatus.peopleAhead ?? slip.peopleAhead ?? 1;
+    const effectivePeopleAhead =
+      liveStatus.peopleAhead ?? slip.peopleAhead ?? 1;
 
     const statusText =
       effectiveStatus === 'in_progress'
@@ -351,7 +369,9 @@ export function SlipPage() {
 
     ctx.font = '18px sans-serif';
     ctx.fillStyle = '#212529';
-    const dirText = slip.humanReadableDirection || 'Proceed from main entrance to the counter.';
+    const dirText =
+      slip.humanReadableDirection ||
+      'Proceed from main entrance to the counter.';
     const words = dirText.split(' ');
     let line = '';
     let y = 765;
@@ -372,7 +392,11 @@ export function SlipPage() {
     ctx.fillStyle = '#6c757d';
     ctx.font = 'italic 16px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('Please show this slip at the department counter upon arrival.', 400, 980);
+    ctx.fillText(
+      'Please show this slip at the department counter upon arrival.',
+      400,
+      980
+    );
 
     const link = document.createElement('a');
     link.download = `VaidDisha-Slip-${slip.token}.png`;
@@ -396,7 +420,8 @@ export function SlipPage() {
   const isGuestUser = slip.isGuest ?? (user ? user.isGuest : true);
 
   const effectiveStatus = liveStatus.status || slip.status || 'waiting';
-  const effectiveWait = liveStatus.estimatedWaitMinutes ?? slip.estimatedWait ?? 15;
+  const effectiveWait =
+    liveStatus.estimatedWaitMinutes ?? slip.estimatedWait ?? 15;
   const effectivePeopleAhead = liveStatus.peopleAhead ?? slip.peopleAhead ?? 1;
   const nowServingToken = liveStatus.nowServingToken;
   const deptLive = liveStatus.department;
@@ -407,9 +432,16 @@ export function SlipPage() {
     if (deptLive?.statusCode === 'emergency' || isEmergency) {
       return {
         variant: 'danger' as const,
-        icon: <TriangleAlert size={18} className="text-red-600 shrink-0" aria-hidden="true" />,
+        icon: (
+          <TriangleAlert
+            size={18}
+            className="text-red-600 shrink-0"
+            aria-hidden="true"
+          />
+        ),
         badgeLabel: 'Emergency Priority',
-        headline: deptLive?.statusMessage || 'Emergency Priority — Immediate Care',
+        headline:
+          deptLive?.statusMessage || 'Emergency Priority — Immediate Care',
         subtext: 'Proceed directly to the triage desk.',
         cardClass: 'bg-red-50 border-2 border-red-400 text-red-950',
         clockColor: 'text-red-700',
@@ -421,10 +453,19 @@ export function SlipPage() {
       const activeRoom = slip.roomNumber || deptLive?.roomNumber;
       return {
         variant: 'success' as const,
-        icon: <UserCheck size={18} className="text-emerald-700 shrink-0 animate-pulse" aria-hidden="true" />,
+        icon: (
+          <UserCheck
+            size={18}
+            className="text-emerald-700 shrink-0 animate-pulse"
+            aria-hidden="true"
+          />
+        ),
         badgeLabel: t('slip.status_in_progress'),
-        headline: activeRoom ? `Attending Now in Room ${activeRoom.replace(/^Room\s*/i, '')}` : 'Attending Now in Consultation Room',
-        subtext: 'Please enter the room now. The specialist is attending to you.',
+        headline: activeRoom
+          ? `Attending Now in Room ${activeRoom.replace(/^Room\s*/i, '')}`
+          : 'Attending Now in Consultation Room',
+        subtext:
+          'Please enter the room now. The specialist is attending to you.',
         cardClass: 'bg-emerald-50 border-2 border-emerald-400 text-emerald-950',
         clockColor: 'text-emerald-700',
         waitText: t('slip.no_wait'),
@@ -435,7 +476,13 @@ export function SlipPage() {
       const activeRoom = slip.roomNumber || deptLive?.roomNumber;
       return {
         variant: 'info' as const,
-        icon: <BellRing size={18} className="text-blue-700 shrink-0 animate-bounce" aria-hidden="true" />,
+        icon: (
+          <BellRing
+            size={18}
+            className="text-blue-700 shrink-0 animate-bounce"
+            aria-hidden="true"
+          />
+        ),
         badgeLabel: t('slip.status_turn_soon'),
         headline: 'Your Turn Soon! (Next in line)',
         subtext: activeRoom
@@ -443,17 +490,29 @@ export function SlipPage() {
           : 'Please stay directly outside the consultation room.',
         cardClass: 'bg-blue-50 border-2 border-blue-400 text-blue-950',
         clockColor: 'text-blue-700',
-        waitText: effectiveWait === 0 ? t('slip.no_wait') : t('slip.minutes_wait', { minutes: effectiveWait }),
+        waitText:
+          effectiveWait === 0
+            ? t('slip.no_wait')
+            : t('slip.minutes_wait', { minutes: effectiveWait }),
       };
     }
 
     if (deptLive?.statusCode === 'break') {
       return {
         variant: 'warning' as const,
-        icon: <Coffee size={18} className="text-amber-700 shrink-0" aria-hidden="true" />,
+        icon: (
+          <Coffee
+            size={18}
+            className="text-amber-700 shrink-0"
+            aria-hidden="true"
+          />
+        ),
         badgeLabel: 'Doctor on Break',
-        headline: deptLive.statusMessage || `Doctor on break until ${deptLive.breakUntil || 'shortly'}`,
-        subtext: 'Consultations will resume shortly. Please relax in the waiting lounge.',
+        headline:
+          deptLive.statusMessage ||
+          `Doctor on break until ${deptLive.breakUntil || 'shortly'}`,
+        subtext:
+          'Consultations will resume shortly. Please relax in the waiting lounge.',
         cardClass: 'bg-amber-50 border-2 border-amber-400 text-amber-950',
         clockColor: 'text-amber-700',
         waitText: t('slip.minutes_wait', { minutes: effectiveWait }),
@@ -463,10 +522,19 @@ export function SlipPage() {
     if (deptLive?.statusCode === 'delayed') {
       return {
         variant: 'warning' as const,
-        icon: <AlertTriangle size={18} className="text-orange-700 shrink-0" aria-hidden="true" />,
+        icon: (
+          <AlertTriangle
+            size={18}
+            className="text-orange-700 shrink-0"
+            aria-hidden="true"
+          />
+        ),
         badgeLabel: 'Department Delayed',
-        headline: deptLive.statusMessage || `Lab delayed by ${deptLive.delayMinutes || 20} min`,
-        subtext: 'Estimated wait times have been adjusted automatically based on batch workload.',
+        headline:
+          deptLive.statusMessage ||
+          `Lab delayed by ${deptLive.delayMinutes || 20} min`,
+        subtext:
+          'Estimated wait times have been adjusted automatically based on batch workload.',
         cardClass: 'bg-orange-50 border-2 border-orange-400 text-orange-950',
         clockColor: 'text-orange-700',
         waitText: t('slip.minutes_wait', { minutes: effectiveWait }),
@@ -476,13 +544,25 @@ export function SlipPage() {
     // Default waiting
     return {
       variant: 'warning' as const,
-      icon: <Clock size={18} className="text-amber-700 shrink-0" aria-hidden="true" />,
+      icon: (
+        <Clock
+          size={18}
+          className="text-amber-700 shrink-0"
+          aria-hidden="true"
+        />
+      ),
       badgeLabel: deptLive?.statusMessage || t('slip.status_waiting'),
       headline: deptLive?.statusMessage || 'Doctor with another patient',
-      subtext: nowServingToken ? `Currently attending token #${nowServingToken}` : 'Queue is advancing normally.',
-      cardClass: 'bg-[var(--color-warning-50)] border-2 border-[var(--color-warning-300)] text-[var(--color-warning-950)]',
+      subtext: nowServingToken
+        ? `Currently attending token #${nowServingToken}`
+        : 'Queue is advancing normally.',
+      cardClass:
+        'bg-[var(--color-warning-50)] border-2 border-[var(--color-warning-300)] text-[var(--color-warning-950)]',
       clockColor: 'text-[var(--color-warning-700)]',
-      waitText: effectiveWait === 0 ? t('slip.no_wait') : t('slip.minutes_wait', { minutes: effectiveWait }),
+      waitText:
+        effectiveWait === 0
+          ? t('slip.no_wait')
+          : t('slip.minutes_wait', { minutes: effectiveWait }),
     };
   };
 
@@ -495,7 +575,8 @@ export function SlipPage() {
           <p>{t('slip.hospital_title')}</p>
           <h1>{t('slip.slip_subtitle')}</h1>
           <span>
-            {t('slip.generated_at')}: {formatDate(slip.generatedAt)} · {formatTime(slip.generatedAt)}
+            {t('slip.generated_at')}: {formatDate(slip.generatedAt)} ·{' '}
+            {formatTime(slip.generatedAt)}
           </span>
         </header>
 
@@ -506,8 +587,12 @@ export function SlipPage() {
           </div>
           <div>
             <p>{t('slip.patient_label')}</p>
-            <strong>{slip.patientName || user?.name || t('slip.patient_label')}</strong>
-            <p>{isGuestUser ? t('slip.guest_badge') : t('slip.registered_badge')}</p>
+            <strong>
+              {slip.patientName || user?.name || t('slip.patient_label')}
+            </strong>
+            <p>
+              {isGuestUser ? t('slip.guest_badge') : t('slip.registered_badge')}
+            </p>
           </div>
         </div>
 
@@ -522,13 +607,16 @@ export function SlipPage() {
           </div>
           <div>
             <dt>{t('slip.room')}</dt>
-            <dd>{slip.roomNumber || slip.department.roomNumbers?.[0] || '—'}</dd>
+            <dd>
+              {slip.roomNumber || slip.department.roomNumbers?.[0] || '—'}
+            </dd>
           </div>
           <div>
             <dt>{t('slip.floor')}</dt>
             <dd>
               {floorLabel(slip.floor ?? slip.department.floor, t)}
-              {(slip.wing || slip.department.wing) && ` · ${slip.wing || slip.department.wing}`}
+              {(slip.wing || slip.department.wing) &&
+                ` · ${slip.wing || slip.department.wing}`}
             </dd>
           </div>
         </dl>
@@ -581,7 +669,8 @@ export function SlipPage() {
             role="alert"
             className="p-4 bg-red-100 border-2 border-red-400 text-red-950 rounded-2xl text-sm font-bold text-center"
           >
-            Slip #{slip?.token} has been cancelled. A cancellation confirmation was sent to your email.
+            Slip #{slip?.token} has been cancelled. A cancellation confirmation
+            was sent to your email.
           </div>
         )}
 
@@ -614,7 +703,8 @@ export function SlipPage() {
                   </span>
                 </div>
                 <span className="text-xs text-[var(--color-text-muted)] font-mono">
-                  {formatDate(slip.generatedAt)} • {formatTime(slip.generatedAt)}
+                  {formatDate(slip.generatedAt)} •{' '}
+                  {formatTime(slip.generatedAt)}
                 </span>
               </div>
 
@@ -675,7 +765,11 @@ export function SlipPage() {
                   icon={<Stethoscope size={22} aria-hidden="true" />}
                   iconBgClass="bg-[var(--color-primary-50)] text-[var(--color-primary-500)]"
                   title={t('slip.doctor')}
-                  description={slip.doctorName || slip.department.doctorName || 'Doctor on Duty'}
+                  description={
+                    slip.doctorName ||
+                    slip.department.doctorName ||
+                    'Doctor on Duty'
+                  }
                   className="p-3 bg-[var(--color-surface-2)] border-[var(--color-border)]"
                 />
 
@@ -699,7 +793,7 @@ export function SlipPage() {
                   icon={<Layers size={22} aria-hidden="true" />}
                   iconBgClass="bg-[var(--color-primary-50)] text-[var(--color-primary-500)]"
                   title={t('slip.floor')}
-                  description={`${floorLabel(slip.floor, t)} • ${slip.wing || slip.department.wing || 'West Wing'} (Bldg ${slip.department.building})`}
+                  description={`${floorLabel(slip.floor, t)} • ${slip.wing || slip.department.wing} (${slip.department.building})`}
                   className="p-3 bg-[var(--color-surface-2)] border-[var(--color-border)]"
                 />
               </div>
@@ -752,7 +846,10 @@ export function SlipPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 border-t border-current/15">
                     {/* Wait Time */}
                     <div className="p-2.5 rounded-xl bg-white/75 flex items-center gap-2.5">
-                      <Clock size={20} className={`${statusConfig.clockColor} shrink-0`} />
+                      <Clock
+                        size={20}
+                        className={`${statusConfig.clockColor} shrink-0`}
+                      />
                       <div>
                         <span className="text-[11px] font-bold uppercase tracking-wider block opacity-80">
                           {t('slip.estimated_wait')}
@@ -771,7 +868,9 @@ export function SlipPage() {
                         </span>
                         <span className="text-base font-extrabold">
                           {effectivePeopleAhead > 0
-                            ? t('slip.people_ahead', { count: effectivePeopleAhead })
+                            ? t('slip.people_ahead', {
+                                count: effectivePeopleAhead,
+                              })
                             : t('slip.people_ahead_zero')}
                         </span>
                       </div>
@@ -791,8 +890,13 @@ export function SlipPage() {
                   {/* Active Hospital Announcement / Delay Alert if any */}
                   {activeAlerts.length > 0 && (
                     <div className="p-2.5 rounded-xl bg-white/90 border border-current/20 text-xs font-semibold flex items-center gap-2">
-                      <AlertTriangle size={15} className="shrink-0 text-amber-600" />
-                      <span className="truncate">{activeAlerts[0].title}: {activeAlerts[0].message}</span>
+                      <AlertTriangle
+                        size={15}
+                        className="shrink-0 text-amber-600"
+                      />
+                      <span className="truncate">
+                        {activeAlerts[0].title}: {activeAlerts[0].message}
+                      </span>
                     </div>
                   )}
 
@@ -802,7 +906,10 @@ export function SlipPage() {
                     className="flex items-center justify-between p-2.5 rounded-xl bg-white/90 hover:bg-white text-xs sm:text-sm font-bold text-[var(--color-primary-800)] border border-[var(--color-primary-300)] transition-all shadow-xs group"
                   >
                     <span className="flex items-center gap-2">
-                      <Radio size={16} className="text-[var(--color-primary-600)] animate-pulse" />
+                      <Radio
+                        size={16}
+                        className="text-[var(--color-primary-600)] animate-pulse"
+                      />
                       What's happening at destination right now?
                     </span>
                     <span className="text-[var(--color-primary-600)] group-hover:translate-x-1 transition-transform font-extrabold shrink-0">
@@ -815,16 +922,25 @@ export function SlipPage() {
               {/* Save slip status indicator */}
               {!isGuestUser ? (
                 <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-300 rounded-xl text-emerald-900 text-xs sm:text-sm font-semibold">
-                  <CheckCircle size={18} className="text-emerald-600 shrink-0" />
+                  <CheckCircle
+                    size={18}
+                    className="text-emerald-600 shrink-0"
+                  />
                   <span>{t('slip.auto_saved_notice')}</span>
-                  <Link to="/patient/history" className="ml-auto underline font-bold text-xs sm:text-sm shrink-0">
+                  <Link
+                    to="/patient/history"
+                    className="ml-auto underline font-bold text-xs sm:text-sm shrink-0"
+                  >
                     {t('slip.view_history_btn')} →
                   </Link>
                 </div>
               ) : (
                 <div className="flex items-center justify-between gap-2 p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs font-medium flex-wrap">
                   <span>{t('history.guest_desc')}</span>
-                  <Link to="/patient/start" className="underline font-bold text-xs shrink-0 text-amber-950">
+                  <Link
+                    to="/patient/start"
+                    className="underline font-bold text-xs shrink-0 text-amber-950"
+                  >
                     {t('history.guest_login_btn')}
                   </Link>
                 </div>
@@ -854,25 +970,40 @@ export function SlipPage() {
                       ? 'btn-primary animate-pulse'
                       : 'btn-secondary bg-white text-[var(--color-primary-600)] border border-[var(--color-primary-400)]',
                   ].join(' ')}
-                  aria-label={isSpeaking ? t('slip.stop_listening') : t('slip.listen_directions')}
-                  title={isSpeaking ? t('slip.stop_listening') : t('slip.listen_directions')}
+                  aria-label={
+                    isSpeaking
+                      ? t('slip.stop_listening')
+                      : t('slip.listen_directions')
+                  }
+                  title={
+                    isSpeaking
+                      ? t('slip.stop_listening')
+                      : t('slip.listen_directions')
+                  }
                 >
                   {isSpeaking ? (
                     <>
                       <VolumeX size={16} />
-                      <span className="text-xs font-bold">{t('slip.stop_listening')}</span>
+                      <span className="text-xs font-bold">
+                        {t('slip.stop_listening')}
+                      </span>
                     </>
                   ) : (
                     <>
                       <Volume2 size={16} />
-                      <span className="text-xs font-bold">{t('slip.listen_directions')}</span>
+                      <span className="text-xs font-bold">
+                        {t('slip.listen_directions')}
+                      </span>
                     </>
                   )}
                 </button>
               </div>
 
               <p className="text-base font-bold text-[var(--color-primary-950)] leading-relaxed break-words">
-                "{slip.humanReadableDirection || 'Follow the hospital main corridor to the department counter.'}"
+                "
+                {slip.humanReadableDirection ||
+                  'Follow the hospital main corridor to the department counter.'}
+                "
               </p>
             </div>
 
@@ -1000,8 +1131,14 @@ export function SlipPage() {
             <div className="bg-[var(--color-surface)] border-2 border-[var(--color-border)] rounded-2xl w-full max-w-md p-5 shadow-2xl max-h-[85vh] overflow-y-auto">
               <div className="flex items-center justify-between pb-3 border-b border-[var(--color-border)] mb-3">
                 <div className="flex items-center gap-2">
-                  <FileText size={22} className="text-[var(--color-primary-500)]" />
-                  <h3 id="reports-modal-title" className="font-extrabold text-lg text-[var(--color-text)]">
+                  <FileText
+                    size={22}
+                    className="text-[var(--color-primary-500)]"
+                  />
+                  <h3
+                    id="reports-modal-title"
+                    className="font-extrabold text-lg text-[var(--color-text)]"
+                  >
                     {t('slip.view_reports')}
                   </h3>
                 </div>
@@ -1017,20 +1154,44 @@ export function SlipPage() {
 
               <div className="flex flex-col gap-3">
                 {[
-                  { title: 'Lipid Profile & Serum Creatinine', dept: 'Pathology Lab', date: '2026-09-03', size: '1.2 MB' },
-                  { title: 'Chest X-Ray Digital', dept: 'Radiology', date: '2026-07-21', size: '3.4 MB' },
-                  { title: 'ECG Report (12-Lead)', dept: 'Cardiology', date: '2026-10-15', size: '850 KB' },
+                  {
+                    title: 'Lipid Profile & Serum Creatinine',
+                    dept: 'Pathology Lab',
+                    date: '2026-09-03',
+                    size: '1.2 MB',
+                  },
+                  {
+                    title: 'Chest X-Ray Digital',
+                    dept: 'Radiology',
+                    date: '2026-07-21',
+                    size: '3.4 MB',
+                  },
+                  {
+                    title: 'ECG Report (12-Lead)',
+                    dept: 'General Medicine',
+                    date: '2026-10-15',
+                    size: '850 KB',
+                  },
                 ].map((rep, idx) => (
-                  <div key={idx} className="p-3.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] flex items-center justify-between gap-3">
+                  <div
+                    key={idx}
+                    className="p-3.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] flex items-center justify-between gap-3"
+                  >
                     <div>
-                      <h4 className="font-bold text-sm text-[var(--color-text)]">{rep.title}</h4>
-                      <p className="text-xs text-[var(--color-text-muted)] mt-0.5">{rep.dept} • {rep.date} • {rep.size}</p>
+                      <h4 className="font-bold text-sm text-[var(--color-text)]">
+                        {rep.title}
+                      </h4>
+                      <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                        {rep.dept} • {rep.date} • {rep.size}
+                      </p>
                     </div>
                     <Button
                       variant="secondary"
                       size="sm"
                       icon={<Download size={14} />}
-                      onClick={() => alert(`Simulated download for ${rep.title}`)}
+                      onClick={() =>
+                        alert(`Simulated download for ${rep.title}`)
+                      }
                     >
                       Download
                     </Button>
@@ -1039,7 +1200,11 @@ export function SlipPage() {
               </div>
 
               <div className="pt-4 mt-2">
-                <Button variant="ghost" fullWidth onClick={() => setShowReportsModal(false)}>
+                <Button
+                  variant="ghost"
+                  fullWidth
+                  onClick={() => setShowReportsModal(false)}
+                >
                   {t('common.close')}
                 </Button>
               </div>
@@ -1058,8 +1223,14 @@ export function SlipPage() {
             <div className="bg-[var(--color-surface)] border-2 border-[var(--color-border)] rounded-2xl w-full max-w-md p-5 shadow-2xl max-h-[85vh] flex flex-col">
               <div className="flex items-center justify-between gap-2 pb-3 border-b border-[var(--color-border)] mb-3 shrink-0">
                 <div className="flex items-center gap-2">
-                  <Accessibility size={22} className="text-[var(--color-primary-500)]" />
-                  <h3 id="amenities-modal-title" className="font-extrabold text-lg text-[var(--color-text)]">
+                  <Accessibility
+                    size={22}
+                    className="text-[var(--color-primary-500)]"
+                  />
+                  <h3
+                    id="amenities-modal-title"
+                    className="font-extrabold text-lg text-[var(--color-text)]"
+                  >
                     {t('slip.amenities_title')}
                   </h3>
                 </div>
@@ -1080,8 +1251,12 @@ export function SlipPage() {
                     <Accessibility size={22} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h4 className="font-bold text-sm text-[var(--color-text)]">{t('slip.washroom_label')}</h4>
-                    <p className="text-xs text-[var(--color-text-muted)] mt-1">{t('slip.washroom_desc')}</p>
+                    <h4 className="font-bold text-sm text-[var(--color-text)]">
+                      {t('slip.washroom_label')}
+                    </h4>
+                    <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                      {t('slip.washroom_desc')}
+                    </p>
                     <Button
                       type="button"
                       variant="secondary"
@@ -1103,8 +1278,12 @@ export function SlipPage() {
                     <Accessibility size={22} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h4 className="font-bold text-sm text-[var(--color-text)]">{t('slip.wheelchair_label')}</h4>
-                    <p className="text-xs text-[var(--color-text-muted)] mt-1">{t('slip.wheelchair_desc')}</p>
+                    <h4 className="font-bold text-sm text-[var(--color-text)]">
+                      {t('slip.wheelchair_label')}
+                    </h4>
+                    <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                      {t('slip.wheelchair_desc')}
+                    </p>
                     <Button
                       type="button"
                       variant="secondary"
@@ -1113,7 +1292,9 @@ export function SlipPage() {
                       className="mt-3"
                       icon={<Navigation size={16} />}
                       aria-label={`${t('facilities.take_me_here')}: ${t('slip.wheelchair_label')}`}
-                      onClick={() => handleNavigateToFacility('wheelchair-f0-main')}
+                      onClick={() =>
+                        handleNavigateToFacility('wheelchair-f0-main')
+                      }
                     >
                       {t('facilities.take_me_here')}
                     </Button>
@@ -1126,8 +1307,12 @@ export function SlipPage() {
                     <Building2 size={22} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h4 className="font-bold text-sm text-[var(--color-text)]">{t('slip.drinking_water')}</h4>
-                    <p className="text-xs text-[var(--color-text-muted)] mt-1">{t('slip.drinking_water_desc')}</p>
+                    <h4 className="font-bold text-sm text-[var(--color-text)]">
+                      {t('slip.drinking_water')}
+                    </h4>
+                    <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                      {t('slip.drinking_water_desc')}
+                    </p>
                     <Button
                       type="button"
                       variant="secondary"
@@ -1145,7 +1330,11 @@ export function SlipPage() {
               </div>
 
               <div className="pt-4 mt-2 shrink-0">
-                <Button variant="ghost" fullWidth onClick={() => setShowAmenitiesModal(false)}>
+                <Button
+                  variant="ghost"
+                  fullWidth
+                  onClick={() => setShowAmenitiesModal(false)}
+                >
                   {t('common.close')}
                 </Button>
               </div>
@@ -1165,7 +1354,10 @@ export function SlipPage() {
               <div className="flex items-center justify-between pb-3 border-b border-[var(--color-border)] mb-3">
                 <div className="flex items-center gap-2">
                   <Mail size={22} className="text-[var(--color-primary-500)]" />
-                  <h3 id="attendant-modal-title" className="font-extrabold text-lg text-[var(--color-text)]">
+                  <h3
+                    id="attendant-modal-title"
+                    className="font-extrabold text-lg text-[var(--color-text)]"
+                  >
                     Share with Attendant
                   </h3>
                 </div>
@@ -1180,7 +1372,8 @@ export function SlipPage() {
               </div>
 
               <p className="text-xs sm:text-sm text-[var(--color-text-muted)] mb-4">
-                Share your OPD token with a family member or attendant so they can follow queue progress on your behalf.
+                Share your OPD token with a family member or attendant so they
+                can follow queue progress on your behalf.
               </p>
 
               {attendantFeedback && (
@@ -1195,7 +1388,10 @@ export function SlipPage() {
                 </div>
               )}
 
-              <form onSubmit={handleShareWithAttendant} className="flex flex-col gap-3">
+              <form
+                onSubmit={handleShareWithAttendant}
+                className="flex flex-col gap-3"
+              >
                 <Input
                   id="attendant-email-input"
                   type="email"
@@ -1243,7 +1439,10 @@ export function SlipPage() {
               <div className="flex items-center justify-between pb-3 border-b border-[var(--color-border)] mb-3">
                 <div className="flex items-center gap-2">
                   <AlertTriangle size={22} className="text-red-600" />
-                  <h3 id="cancel-modal-title" className="font-extrabold text-lg text-red-900 dark:text-red-200">
+                  <h3
+                    id="cancel-modal-title"
+                    className="font-extrabold text-lg text-red-900 dark:text-red-200"
+                  >
                     Cancel OPD Visit Slip?
                   </h3>
                 </div>
@@ -1258,7 +1457,10 @@ export function SlipPage() {
               </div>
 
               <p className="text-xs sm:text-sm text-[var(--color-text-muted)] mb-4">
-                Are you sure you want to cancel token <strong>{slip?.token}</strong>? Your queue slot will be released for other patients, and a cancellation confirmation email will be sent.
+                Are you sure you want to cancel token{' '}
+                <strong>{slip?.token}</strong>? Your queue slot will be released
+                for other patients, and a cancellation confirmation email will
+                be sent.
               </p>
 
               <div className="flex gap-2">

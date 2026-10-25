@@ -1,3 +1,4 @@
+import { DEPARTMENT_BY_ID } from './departments';
 /**
  * Lab Reports Mock Data & Types
  */
@@ -34,8 +35,8 @@ export const MOCK_LAB_REPORTS: LabReport[] = [
     category: 'Hematology',
     date: '24 Oct 2026, 11:30 AM',
     status: 'ready',
-    doctorName: 'Dr. Sunita Sharma (General OPD)',
-    department: 'Central Pathology Laboratory',
+    doctorName: DEPARTMENT_BY_ID['opd-general'].doctorName!,
+    department: DEPARTMENT_BY_ID['lab-blood'].name,
     sampleId: 'SMP-84920',
     slipToken: 'CARD-1042',
     summary:
@@ -89,8 +90,8 @@ export const MOCK_LAB_REPORTS: LabReport[] = [
     category: 'Biochemistry',
     date: '24 Oct 2026, 09:15 AM',
     status: 'ready',
-    doctorName: 'Dr. Sunita Sharma (General OPD)',
-    department: 'Clinical Biochemistry Lab',
+    doctorName: DEPARTMENT_BY_ID['opd-general'].doctorName!,
+    department: DEPARTMENT_BY_ID['lab-blood'].name,
     sampleId: 'SMP-84918',
     slipToken: 'CARD-1042',
     summary:
@@ -128,8 +129,8 @@ export const MOCK_LAB_REPORTS: LabReport[] = [
     category: 'Biochemistry',
     date: '18 Oct 2026, 10:00 AM',
     status: 'ready',
-    doctorName: 'Dr. Anand Mehta (Cardiology)',
-    department: 'Clinical Biochemistry Lab',
+    doctorName: DEPARTMENT_BY_ID['opd-general-2'].doctorName!,
+    department: DEPARTMENT_BY_ID['lab-blood'].name,
     sampleId: 'SMP-83011',
     summary:
       'Lipid profile summary: Total cholesterol is 185 milligrams per deciliter, within normal range. HDL good cholesterol is 48 milligrams per deciliter, within normal range. LDL bad cholesterol is 112 milligrams per deciliter, within normal range. Triglycerides are 130 milligrams per deciliter.',
@@ -174,11 +175,12 @@ export const MOCK_LAB_REPORTS: LabReport[] = [
     category: 'Endocrinology',
     date: '24 Oct 2026, 11:45 AM',
     status: 'in_progress',
-    doctorName: 'Dr. Sunita Sharma (General OPD)',
-    department: 'Endocrine Diagnostics Unit',
+    doctorName: DEPARTMENT_BY_ID['opd-general'].doctorName!,
+    department: DEPARTMENT_BY_ID['lab-blood'].name,
     sampleId: 'SMP-84955',
     slipToken: 'CARD-1042',
-    summary: 'Thyroid profile sample is currently being processed in the lab. Expected completion in 45 minutes.',
+    summary:
+      'Thyroid profile sample is currently being processed in the lab. Expected completion in 45 minutes.',
     parameters: [],
   },
   {
@@ -187,11 +189,12 @@ export const MOCK_LAB_REPORTS: LabReport[] = [
     category: 'Clinical Pathology',
     date: '24 Oct 2026, 12:00 PM',
     status: 'pending',
-    doctorName: 'Dr. Sunita Sharma (General OPD)',
-    department: 'Pathology Counter 3',
+    doctorName: DEPARTMENT_BY_ID['opd-general'].doctorName!,
+    department: DEPARTMENT_BY_ID['lab-blood'].name,
     sampleId: 'SMP-84992',
     slipToken: 'CARD-1042',
-    summary: 'Urine routine examination sample received. Analysis pending sample queue turn.',
+    summary:
+      'Urine routine examination sample received. Analysis pending sample queue turn.',
     parameters: [],
   },
 ];

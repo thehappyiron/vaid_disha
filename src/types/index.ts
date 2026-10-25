@@ -11,16 +11,21 @@ export type DepartmentCategory =
 
 export interface Department {
   id: string;
-  nameKey: string;          // i18n key
-  descriptionKey: string;   // i18n key
+  name: string;
+  nodeId: string;
+  nameKey: string; // i18n key
+  descriptionKey: string; // i18n key
   category: DepartmentCategory;
   building: string;
   floor: number;
   roomNumbers: string[];
-  landmark: string;         // plain-language landmark
+  landmark: string; // plain-language landmark
   estimatedWalkMinutes: number;
-  doctorName?: string;      // Assigned specialist
-  wing?: string;            // Wing descriptor (e.g. "West Wing", "Main OPD Wing")
+  doctorName?: string; // Assigned specialist
+  wing?: string; // Wing descriptor (e.g. "West Wing", "Main OPD Wing")
+  opdHours: string;
+  averageConsultationMinutes: number;
+  tokenPrefix: string;
 }
 
 export type AccessibilityNeedId =
@@ -53,31 +58,38 @@ export interface PatientVisitData {
 
 export interface PurposeOption {
   id: string;
-  labelKey: string;         // i18n key
-  icon: string;             // lucide icon name
-  departmentIds: string[];  // which departments to suggest
-  keywords: string[];       // for search matching
+  labelKey: string; // i18n key
+  icon: string; // lucide icon name
+  departmentIds: string[]; // which departments to suggest
+  keywords: string[]; // for search matching
 }
 
 export interface NavigationStep {
   stepNumber: number;
-  instructionKey: string;   // i18n key
+  instructionKey: string; // i18n key
   instructionParams?: Record<string, string | number>;
   landmark?: string;
-  directionIcon: 'arrow-up' | 'arrow-right' | 'arrow-left' | 'corner-right-up' | 'map-pin' | 'elevator' | 'stairs';
+  directionIcon:
+    | 'arrow-up'
+    | 'arrow-right'
+    | 'arrow-left'
+    | 'corner-right-up'
+    | 'map-pin'
+    | 'elevator'
+    | 'stairs';
 }
 
 export type SlipStatus = 'waiting' | 'turn_soon' | 'in_progress' | 'completed';
 
 export interface Slip {
   id: string;
-  generatedAt: string;      // ISO timestamp
+  generatedAt: string; // ISO timestamp
   patientPurposeKey: string;
   department: Department;
-  token: string;            // e.g. "OPD-1042"
-  estimatedWait: number;    // minutes
-  peopleAhead?: number;     // Patients ahead in queue
-  status?: SlipStatus;      // Live queue status
+  token: string; // e.g. "OPD-1042"
+  estimatedWait: number; // minutes
+  peopleAhead?: number; // Patients ahead in queue
+  status?: SlipStatus; // Live queue status
   steps: NavigationStep[];
   additionalNoteKey?: string;
   doctorName?: string;
@@ -148,4 +160,3 @@ export interface UserProfile {
   visits?: VisitRecord[];
   reports?: MedicalReport[];
 }
-

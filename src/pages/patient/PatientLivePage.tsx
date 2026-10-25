@@ -1,3 +1,4 @@
+import { getDepartment } from '../../data/departments';
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import {
@@ -54,7 +55,8 @@ export function PatientLivePage() {
   }, [slipIdParam]);
 
   const activeToken = tokenParam || slip?.token || 'CARD-1042';
-  const activeDeptId = deptParam || slip?.department?.id || 'opd-cardio';
+  const activeDeptId =
+    getDepartment(deptParam || slip?.department?.id)?.id || 'opd-general-2';
 
   const liveData = usePatientLiveStatus(activeToken, activeDeptId);
   const { state: liveStoreState } = useLiveStore();
@@ -76,10 +78,16 @@ export function PatientLivePage() {
     if (deptLive?.statusCode === 'emergency') {
       return {
         variant: 'danger' as const,
-        icon: <TriangleAlert size={32} className="text-red-600 animate-pulse shrink-0" />,
+        icon: (
+          <TriangleAlert
+            size={32}
+            className="text-red-600 animate-pulse shrink-0"
+          />
+        ),
         badgeText: 'Emergency Priority',
         title: deptLive?.statusMessage || 'Emergency Priority Active',
-        description: 'Doctors are currently attending urgent trauma and critical patients.',
+        description:
+          'Doctors are currently attending urgent trauma and critical patients.',
         cardBg: 'bg-red-50 border-2 border-red-500 text-red-950',
         bannerIconBg: 'bg-red-100 text-red-700',
         waitDisplay: 'Immediate Attention',
@@ -89,10 +97,15 @@ export function PatientLivePage() {
     if (myStatus === 'in_progress') {
       return {
         variant: 'success' as const,
-        icon: <UserCheck size={32} className="text-emerald-700 animate-pulse shrink-0" />,
+        icon: (
+          <UserCheck
+            size={32}
+            className="text-emerald-700 animate-pulse shrink-0"
+          />
+        ),
         badgeText: 'Attending Now',
         title: `Doctor is attending your token (#${activeToken})`,
-        description: `Please step inside Room ${deptLive?.roomNumber || slip?.roomNumber || '204'} now.`,
+        description: `Please step inside Room ${deptLive?.roomNumber || slip?.roomNumber || '2'} now.`,
         cardBg: 'bg-emerald-50 border-2 border-emerald-500 text-emerald-950',
         bannerIconBg: 'bg-emerald-100 text-emerald-800',
         waitDisplay: 'No wait — enter room',
@@ -102,10 +115,15 @@ export function PatientLivePage() {
     if (myStatus === 'turn_soon') {
       return {
         variant: 'info' as const,
-        icon: <BellRing size={32} className="text-blue-700 animate-bounce shrink-0" />,
+        icon: (
+          <BellRing
+            size={32}
+            className="text-blue-700 animate-bounce shrink-0"
+          />
+        ),
         badgeText: 'Your Turn Soon',
         title: 'You are next in line!',
-        description: `Please wait directly outside Room ${deptLive?.roomNumber || slip?.roomNumber || '204'}. The doctor will call you in a moment.`,
+        description: `Please wait directly outside Room ${deptLive?.roomNumber || slip?.roomNumber || '2'}. The doctor will call you in a moment.`,
         cardBg: 'bg-blue-50 border-2 border-blue-500 text-blue-950',
         bannerIconBg: 'bg-blue-100 text-blue-800',
         waitDisplay: `~${waitMinutes} min`,
@@ -117,8 +135,11 @@ export function PatientLivePage() {
         variant: 'warning' as const,
         icon: <Coffee size={32} className="text-amber-700 shrink-0" />,
         badgeText: 'Doctor on Break',
-        title: deptLive.statusMessage || `Doctor on break until ${deptLive.breakUntil || 'shortly'}`,
-        description: 'Consultations are paused temporarily. Please take a seat in the waiting lounge.',
+        title:
+          deptLive.statusMessage ||
+          `Doctor on break until ${deptLive.breakUntil || 'shortly'}`,
+        description:
+          'Consultations are paused temporarily. Please take a seat in the waiting lounge.',
         cardBg: 'bg-amber-50 border-2 border-amber-500 text-amber-950',
         bannerIconBg: 'bg-amber-100 text-amber-800',
         waitDisplay: `~${waitMinutes} min`,
@@ -130,8 +151,11 @@ export function PatientLivePage() {
         variant: 'warning' as const,
         icon: <AlertTriangle size={32} className="text-orange-700 shrink-0" />,
         badgeText: 'Procedure Delayed',
-        title: deptLive.statusMessage || `Lab delayed by ${deptLive.delayMinutes || 20} min`,
-        description: 'Batch sample calibration in progress. Wait times have been automatically recalculated.',
+        title:
+          deptLive.statusMessage ||
+          `Lab delayed by ${deptLive.delayMinutes || 20} min`,
+        description:
+          'Batch sample calibration in progress. Wait times have been automatically recalculated.',
         cardBg: 'bg-orange-50 border-2 border-orange-500 text-orange-950',
         bannerIconBg: 'bg-orange-100 text-orange-800',
         waitDisplay: `~${waitMinutes} min`,
@@ -145,7 +169,7 @@ export function PatientLivePage() {
       badgeText: 'In Consultation',
       title: deptLive?.statusMessage || 'Doctor with another patient',
       description: currentToken
-        ? `The doctor is currently consulting with token #${currentToken} inside Room ${deptLive?.roomNumber || '204'}.`
+        ? `The doctor is currently consulting with token #${currentToken} inside Room ${deptLive?.roomNumber || '2'}.`
         : 'Consultations are in progress. Queue is moving steadily.',
       cardBg: 'bg-indigo-50 border-2 border-indigo-400 text-indigo-950',
       bannerIconBg: 'bg-indigo-100 text-indigo-800',
@@ -229,7 +253,9 @@ export function PatientLivePage() {
 
           {/* Main Status Headline with Rich Icon */}
           <div className="flex items-start gap-4">
-            <div className={`p-3.5 rounded-2xl ${visual.bannerIconBg} shrink-0 shadow-2xs`}>
+            <div
+              className={`p-3.5 rounded-2xl ${visual.bannerIconBg} shrink-0 shadow-2xs`}
+            >
               {visual.icon}
             </div>
             <div className="flex-1 min-w-0">
@@ -258,11 +284,16 @@ export function PatientLivePage() {
               ].join(' ')}
             >
               {isSpeaking ? <VolumeX size={16} /> : <Volume2 size={16} />}
-              <span>{isSpeaking ? 'Stop Audio Announcement' : 'Listen to Status Announcement'}</span>
+              <span>
+                {isSpeaking
+                  ? 'Stop Audio Announcement'
+                  : 'Listen to Status Announcement'}
+              </span>
             </button>
 
             <span className="text-xs font-mono opacity-75">
-              Updated: {new Date(liveStoreState.lastUpdated).toLocaleTimeString()}
+              Updated:{' '}
+              {new Date(liveStoreState.lastUpdated).toLocaleTimeString()}
             </span>
           </div>
         </div>
@@ -283,12 +314,15 @@ export function PatientLivePage() {
                 <DoorClosed size={26} />
               </div>
               <div>
-                <span className="text-xs font-bold text-[var(--color-text-muted)] block">Room & Location</span>
+                <span className="text-xs font-bold text-[var(--color-text-muted)] block">
+                  Room & Location
+                </span>
                 <span className="text-lg font-black text-[var(--color-text)]">
-                  Room {deptLive?.roomNumber || slip?.roomNumber || '204'}
+                  Room {deptLive?.roomNumber || slip?.roomNumber || '2'}
                 </span>
                 <span className="text-xs text-[var(--color-text-muted)] block">
-                  Floor {deptLive?.floor ?? slip?.floor ?? 2} • {deptLive?.building || 'Main OPD Block'}
+                  Floor {deptLive?.floor ?? slip?.floor ?? 2} •{' '}
+                  {deptLive?.building || 'Main OPD Block'}
                 </span>
               </div>
             </div>
@@ -298,9 +332,13 @@ export function PatientLivePage() {
                 <Stethoscope size={22} />
               </div>
               <div>
-                <span className="text-xs font-bold text-[var(--color-text-muted)] block">Consulting Doctor</span>
+                <span className="text-xs font-bold text-[var(--color-text-muted)] block">
+                  Consulting Doctor
+                </span>
                 <span className="text-base font-extrabold text-[var(--color-text)]">
-                  {deptLive?.activeDoctorName || slip?.doctorName || 'Doctor on Duty'}
+                  {deptLive?.activeDoctorName ||
+                    slip?.doctorName ||
+                    'Doctor on Duty'}
                 </span>
                 <span className="text-xs text-[var(--color-text-muted)] block">
                   {deptLive?.departmentName || 'Specialist Consultation'}
@@ -344,14 +382,22 @@ export function PatientLivePage() {
                   {peopleAhead} {peopleAhead === 1 ? 'patient' : 'patients'}
                 </span>
                 <span className="text-[11px] text-[var(--color-text-muted)] font-medium mt-1">
-                  {peopleAhead === 0 ? 'You are up next!' : 'In line before you'}
+                  {peopleAhead === 0
+                    ? 'You are up next!'
+                    : 'In line before you'}
                 </span>
               </div>
             </div>
 
             <div className="p-2.5 rounded-xl bg-[var(--color-primary-50)] text-xs text-[var(--color-primary-950)] font-semibold flex items-center gap-2">
-              <Sparkles size={16} className="text-[var(--color-primary-600)] shrink-0" />
-              <span>BroadcastChannel automatically updates this screen when the doctor advances the queue.</span>
+              <Sparkles
+                size={16}
+                className="text-[var(--color-primary-600)] shrink-0"
+              />
+              <span>
+                BroadcastChannel automatically updates this screen when the
+                doctor advances the queue.
+              </span>
             </div>
           </div>
         </div>
@@ -367,13 +413,16 @@ export function PatientLivePage() {
                 Live Department Queue Board
               </h2>
               <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                Current patient sequence for {deptLive?.departmentName || 'this room'}
+                Current patient sequence for{' '}
+                {deptLive?.departmentName || 'this room'}
               </p>
             </div>
 
             {/* Currently Calling Token */}
             <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-50 border-2 border-emerald-300 text-emerald-950">
-              <span className="text-xs font-bold uppercase tracking-wider">Now Calling:</span>
+              <span className="text-xs font-bold uppercase tracking-wider">
+                Now Calling:
+              </span>
               <span className="font-mono font-black text-base text-emerald-700">
                 {currentToken || 'None'}
               </span>
@@ -388,7 +437,8 @@ export function PatientLivePage() {
               </p>
             ) : (
               deptQueue.map((patient) => {
-                const isMe = patient.token.toUpperCase() === activeToken.toUpperCase();
+                const isMe =
+                  patient.token.toUpperCase() === activeToken.toUpperCase();
                 const isCurrent = patient.status === 'in_progress';
                 const isCompleted = patient.status === 'completed';
 
@@ -486,10 +536,17 @@ export function PatientLivePage() {
                 role="alert"
                 className="p-4 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-950 flex items-start gap-3 shadow-2xs"
               >
-                <AlertTriangle size={20} className="text-amber-700 shrink-0 mt-0.5" />
+                <AlertTriangle
+                  size={20}
+                  className="text-amber-700 shrink-0 mt-0.5"
+                />
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-extrabold text-sm sm:text-base leading-snug">{alert.title}</h4>
-                  <p className="text-xs sm:text-sm font-semibold opacity-90 mt-0.5">{alert.message}</p>
+                  <h4 className="font-extrabold text-sm sm:text-base leading-snug">
+                    {alert.title}
+                  </h4>
+                  <p className="text-xs sm:text-sm font-semibold opacity-90 mt-0.5">
+                    {alert.message}
+                  </p>
                 </div>
               </div>
             ))}
@@ -511,7 +568,7 @@ export function PatientLivePage() {
               })
             }
           >
-            Guide Me to Room {deptLive?.roomNumber || '204'}
+            Guide Me to Room {deptLive?.roomNumber || '2'}
           </Button>
 
           {/* View My Slip */}

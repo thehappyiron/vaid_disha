@@ -101,11 +101,11 @@ To experience live cross-tab synchronization:
 - Select **"Continue as Guest"** to proceed without a phone number.
 
 ### 3. Purpose & Accessibility Accommodations (`/patient/visit`)
-- Pick visit reason: e.g., *"Chest tightness & heart checkup"* $\to$ routes to **Cardiology OPD**.
+- Pick visit reason: e.g., *"Chest tightness & heart checkup"* $\to$ routes to **General Medicine (Room 2)**.
 - Declare accessibility accommodations (e.g., *Wheelchair assistance*, *Low vision support*).
 
 ### 4. Digital Appointment Slip (`/patient/slip/:id`)
-- View generated digital token (e.g. `CARD-1042`), attending doctor, room number, and floor.
+- View generated digital token (e.g. `OPD-1042`), attending doctor, room number, and floor.
 - Observe the **Live Destination Status Card**: shows real-time estimated wait time and live room status.
 - Tap **"Read directions aloud"** to hear spoken route instructions.
 
@@ -126,17 +126,17 @@ To experience live cross-tab synchronization:
   - Staff clicks **"Mark Attended"** $\to$ emergency resolves.
 
 ### 8. Live Queue Management & Doctor Break
-- In the Staff Queue table, adjust Cardiology wait time (`+5m` or `-5m`) or click **"Doctor Break (3:15 PM)"**.
+- In the Staff Queue table, adjust General Medicine wait time (`+5m` or `-5m`) or click **"Doctor Break (3:15 PM)"**.
 - **Switch back to Tab 1 (Patient Slip)**: Notice the Live Card updates instantly without any page refresh!
 
 ### 9. Consultation Complete & Discharge (`/patient/completion`)
 - On Staff Dashboard, click **"Mark Completed"** for the active patient.
 - Patient tab instantly receives an in-app toast: *"Your consultation is complete"*.
-- Patient navigates to **Completion Screen** (`/patient/completion`): step-by-step next actions for Medicine Collection at Pharmacy Counter 2, Diagnostic Lab collection, and Feedback.
+- Patient navigates to **Completion Screen** (`/patient/completion`): step-by-step next actions for Medicine Collection at Pharmacy (G-04), Diagnostic Lab collection, and Feedback.
 
 ### 10. Multilingual AI Assistant (Floating Chatbot)
 - Click the floating **Help** button on any patient page.
-- Type or speak: *"Where is Room 204?"* or *"Nearest washroom"*.
+- Type or speak: *"Where is Room 2?"* or *"Nearest washroom"*.
 - Assistant replies with contextual directions and clickable deep links. Toggle voice to have replies spoken aloud.
 
 ---
@@ -162,3 +162,15 @@ Navigate directly to **`/demo`** for single-click simulation buttons:
 2. **Cross-Tab vs. Cross-Device Sync**:
    - Real-time synchronization is currently established across tabs of the **same browser** using the HTML5 `BroadcastChannel` API and `localStorage`.
    - Synchronizing between separate physical smartphones and hospital desktop machines requires connecting to a backend server using WebSockets or Server-Sent Events (SSE) as detailed in `docs/backend-handoff.md`.
+
+## Sample hospital layout
+
+The floor plan in `src/data/hospitalGraph.json` is the source of truth for names, positions, visible landmarks, corridors and distances. `src/data/departments.ts` derives room/floor metadata from that plan and defines the fictional doctor roster, OPD hours (09:00–14:00) and sample consultation times. Facility pins, patient slips and staff queue defaults use those sources.
+
+- Ground: entrance, registration, help desk, Emergency, Pharmacy, blood laboratory, X-ray, drinking water, toilets, wheelchair point, lift, stairs and ramp.
+- First: General Medicine rooms 1–2; Children 3; Women and pregnancy 4; Bones and joints 5; ENT 6; Eyes 7; Skin 8; Waiting hall A, lift, stairs and toilets.
+- Second: Ward 4 (Medicine), Ward 5 (Surgery), Ward 6 (Children), nurses’ station, lift and stairs.
+
+The illustrative map borrows floor-switching and navigation conventions from [Google indoor maps](https://www.google.com/maps/about/partners/indoormaps/). It uses local SVG geometry and requires no Google API key or map server. Distances are sample walking distances, not a surveyed hospital plan.
+
+Run `npm run check:hospital` to check the room/doctor roster, facility pins, sample records, translated names, corridor geometry and every normal/step-free route.

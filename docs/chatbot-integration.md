@@ -94,7 +94,7 @@ export interface ChatRequest {
     "userType": "registered",
     "slipId": "slip-1729765200000",
     "currentLocation": "reception",
-    "department": "opd-cardiology",
+    "department": "opd-general-2",
     "accessibilityNeeds": ["wheelchair"]
   },
   "history": [
@@ -129,7 +129,7 @@ export interface ChatResponse {
 
 ```json
 {
-  "text": "Your consultation is in Room B-201 (Cardiology OPD) on Floor 2. An elevator is available near the Central Junction.",
+  "text": "Your consultation is in Room 2 (General Medicine) on Floor 1. An elevator is available near the Central Junction.",
   "language": "en",
   "actions": [
     {

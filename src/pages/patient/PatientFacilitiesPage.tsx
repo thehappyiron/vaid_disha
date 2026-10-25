@@ -25,13 +25,15 @@ import {
   type FacilityCategory,
 } from '../../data/facilitiesData';
 import type { Slip } from '../../types';
+import { computeRoute, getNodeById } from '../../services/pathfindingService';
+import { normalizeSlip } from '../../services/hospitalService';
 
 function getStoredSlip(): Slip | null {
   if (typeof window === 'undefined') return null;
   try {
     const raw = localStorage.getItem('vd-latest-slip');
     if (!raw) return null;
-    return JSON.parse(raw) as Slip;
+    return normalizeSlip(JSON.parse(raw) as Slip);
   } catch {
     return null;
   }
@@ -43,11 +45,15 @@ export function PatientFacilitiesPage() {
   const location = useLocation();
 
   const searchParams = new URLSearchParams(location.search);
-  const initialFilter = (searchParams.get('filter') as FacilityCategory) || 'all';
+  const initialFilter =
+    (searchParams.get('filter') as FacilityCategory) || 'all';
 
-  const [activeCategory, setActiveCategory] = useState<FacilityCategory>(initialFilter);
+  const [activeCategory, setActiveCategory] =
+    useState<FacilityCategory>(initialFilter);
   const [selectedFloor, setSelectedFloor] = useState<number>(0);
-  const [selectedFacility, setSelectedFacility] = useState<FacilityPin | null>(null);
+  const [selectedFacility, setSelectedFacility] = useState<FacilityPin | null>(
+    null
+  );
 
   const slip = getStoredSlip();
   const hasWheelchair =
@@ -57,7 +63,8 @@ export function PatientFacilitiesPage() {
   // Filtered facilities
   const filteredFacilities = useMemo(() => {
     return FACILITY_PINS.filter((pin) => {
-      const matchCat = activeCategory === 'all' || pin.category === activeCategory;
+      const matchCat =
+        activeCategory === 'all' || pin.category === activeCategory;
       return matchCat;
     });
   }, [activeCategory]);
@@ -69,34 +76,34 @@ export function PatientFacilitiesPage() {
 
   // Handle "Take me to the nearest washroom"
   const handleNearestWashroom = () => {
-    // Current user location defaults
-    const userLocation = localStorage.getItem('vd-last-location') || 'entrance-main';
-
-    // Prioritize accessible washrooms if user has wheelchair / walking difficulties
-    let targetWashroomId = 'washroom-f0';
-    if (hasWheelchair) {
-      targetWashroomId = selectedFloor === 1 ? 'washroom-f1-acc' : 'washroom-f0';
-    } else {
-      if (selectedFloor === 0) targetWashroomId = 'washroom-f0';
-      else if (selectedFloor === 1) targetWashroomId = 'washroom-f1';
-      else targetWashroomId = 'washroom-f2';
-    }
-
-    navigate(`/patient/guidance?dest=${targetWashroomId}&start=${userLocation}`, {
-      state: {
-        destinationNodeId: targetWashroomId,
-        startNodeId: userLocation,
-      },
-    });
+    const stored = localStorage.getItem('vd-last-location');
+    const start = stored ? getNodeById(stored) : undefined;
+    const candidates = FACILITY_PINS.filter(
+      (pin) =>
+        pin.category === 'washroom' && (!hasWheelchair || pin.isAccessible)
+    );
+    const target = start
+      ? candidates
+          .map((pin) => ({
+            pin,
+            route: computeRoute(start.id, pin.nodeId, {
+              excludeStairs: hasWheelchair,
+            }),
+          }))
+          .filter((item) => item.route)
+          .sort((a, b) => a.route!.totalDistance - b.route!.totalDistance)[0]
+          ?.pin
+      : candidates.find((pin) => pin.floor === selectedFloor) || candidates[0];
+    if (target) handleNavigateToFacility(target);
   };
 
   // Navigate to any selected facility
   const handleNavigateToFacility = (pin: FacilityPin) => {
-    const userLocation = localStorage.getItem('vd-last-location') || 'entrance-main';
-    navigate(`/patient/guidance?dest=${pin.nodeId}&start=${userLocation}`, {
+    const params = new URLSearchParams({ dest: pin.nodeId });
+    navigate(`/patient/guidance${slip ? `/${slip.id}` : ''}?${params}`, {
       state: {
         destinationNodeId: pin.nodeId,
-        startNodeId: userLocation,
+        slip,
       },
     });
   };
@@ -147,7 +154,12 @@ export function PatientFacilitiesPage() {
               aria-label="Take me to the nearest washroom"
             >
               <Sparkles size={18} />
-              <span>{t('facilities.take_nearest_washroom', 'Take me to nearest washroom')}</span>
+              <span>
+                {t(
+                  'facilities.take_nearest_washroom',
+                  'Take me to nearest washroom'
+                )}
+              </span>
               {hasWheelchair && (
                 <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full font-bold ml-1 inline-flex items-center gap-1">
                   <Accessibility size={13} aria-hidden="true" />
@@ -163,7 +175,9 @@ export function PatientFacilitiesPage() {
           <div className="flex items-center gap-3 p-3.5 bg-blue-50 dark:bg-blue-950/40 border-2 border-blue-300 dark:border-blue-800 rounded-xl text-blue-900 dark:text-blue-100 text-sm font-semibold">
             <Accessibility size={22} className="text-blue-600 shrink-0" />
             <span>
-              <strong>Accessibility Active:</strong> Accessible washrooms with wide doors, grab bars, and step-free ramp access are prioritized for you.
+              <strong>Accessibility Active:</strong> Accessible washrooms with
+              wide doors, grab bars, and step-free ramp access are prioritized
+              for you.
             </span>
           </div>
         )}
@@ -206,7 +220,9 @@ export function PatientFacilitiesPage() {
                   <span
                     className={[
                       'px-1.5 py-0.5 rounded-full text-[11px] font-black',
-                      isSelected ? 'bg-white/20 text-white' : 'bg-[var(--color-surface-2)] text-[var(--color-text-muted)]',
+                      isSelected
+                        ? 'bg-white/20 text-white'
+                        : 'bg-[var(--color-surface-2)] text-[var(--color-text-muted)]',
                     ].join(' ')}
                   >
                     {count}
@@ -222,7 +238,9 @@ export function PatientFacilitiesPage() {
           <div className="flex items-center justify-between">
             <h2 className="text-base sm:text-lg font-black text-[var(--color-text)] flex items-center gap-2">
               <Compass size={20} className="text-[var(--color-primary-500)]" />
-              <span>{t('facilities.interactive_map', 'Floor Map & Facility Pins')}</span>
+              <span>
+                {t('facilities.interactive_map', 'Floor Map & Facility Pins')}
+              </span>
             </h2>
             <span className="text-xs font-semibold text-[var(--color-text-muted)]">
               Floor {selectedFloor} • {facilitiesOnCurrentFloor.length} pin(s)
@@ -287,7 +305,8 @@ export function PatientFacilitiesPage() {
                     )}
                   </div>
                   <p className="text-xs sm:text-sm text-[var(--color-text-muted)] font-medium mt-1">
-                    Floor {selectedFacility.floor} • Landmark: {selectedFacility.pillarCode || 'Central Block'}
+                    Floor {selectedFacility.floor} • Landmark:{' '}
+                    {selectedFacility.pillarCode || 'Central Block'}
                   </p>
                 </div>
               </div>
@@ -324,10 +343,16 @@ export function PatientFacilitiesPage() {
                 <Compass size={24} />
               </div>
               <h3 className="font-bold text-base text-[var(--color-text)]">
-                {t('facilities.no_matching', 'No facilities found for this filter')}
+                {t(
+                  'facilities.no_matching',
+                  'No facilities found for this filter'
+                )}
               </h3>
               <p className="text-xs text-[var(--color-text-muted)] max-w-sm">
-                {t('facilities.no_matching_desc', 'Try selecting "All facilities" to view all hospital locations and amenities.')}
+                {t(
+                  'facilities.no_matching_desc',
+                  'Try selecting "All facilities" to view all hospital locations and amenities.'
+                )}
               </p>
               <Button
                 variant="secondary"
@@ -357,60 +382,61 @@ export function PatientFacilitiesPage() {
                         : 'border-[var(--color-border)] hover:border-[var(--color-primary-400)] hover:shadow-xs',
                     ].join(' ')}
                   >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0 border"
-                        style={{
-                          backgroundColor: fac.bgColor,
-                          borderColor: fac.strokeColor,
-                          color: fac.strokeColor,
-                        }}
-                      >
-                        {fac.shape === 'cross' ? (
-                          <PlusSquare size={18} aria-hidden="true" />
-                        ) : fac.shape === 'diamond' ? (
-                          <Droplets size={18} aria-hidden="true" />
-                        ) : fac.isAccessible ? (
-                          <Accessibility size={18} aria-hidden="true" />
-                        ) : (
-                          <MapPin size={18} aria-hidden="true" />
-                        )}
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-black text-[var(--color-text)] leading-snug">
-                          {fac.name}
-                        </h4>
-                        <span className="text-[11px] font-bold text-[var(--color-text-muted)]">
-                          {fac.shapeLabel}
-                        </span>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <div
+                          className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0 border"
+                          style={{
+                            backgroundColor: fac.bgColor,
+                            borderColor: fac.strokeColor,
+                            color: fac.strokeColor,
+                          }}
+                        >
+                          {fac.shape === 'cross' ? (
+                            <PlusSquare size={18} aria-hidden="true" />
+                          ) : fac.shape === 'diamond' ? (
+                            <Droplets size={18} aria-hidden="true" />
+                          ) : fac.isAccessible ? (
+                            <Accessibility size={18} aria-hidden="true" />
+                          ) : (
+                            <MapPin size={18} aria-hidden="true" />
+                          )}
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-black text-[var(--color-text)] leading-snug">
+                            {fac.name}
+                          </h4>
+                          <span className="text-[11px] font-bold text-[var(--color-text-muted)]">
+                            {fac.shapeLabel}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center justify-between text-xs pt-2 border-t border-[var(--color-border)]">
-                    <span className="font-bold text-[var(--color-text-muted)]">
-                      Floor {fac.floor} {fac.pillarCode ? `• ${fac.pillarCode}` : ''}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleNavigateToFacility(fac);
-                      }}
-                      className="text-[var(--color-primary-500)] hover:text-[var(--color-primary-600)] font-black flex items-center gap-1"
-                    >
-                      <span>Take me</span>
-                      <ArrowRight size={13} />
-                    </button>
+                    <div className="flex items-center justify-between text-xs pt-2 border-t border-[var(--color-border)]">
+                      <span className="font-bold text-[var(--color-text-muted)]">
+                        Floor {fac.floor}{' '}
+                        {fac.pillarCode ? `• ${fac.pillarCode}` : ''}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleNavigateToFacility(fac);
+                        }}
+                        className="text-[var(--color-primary-500)] hover:text-[var(--color-primary-600)] font-black flex items-center gap-1"
+                      >
+                        <span>Take me</span>
+                        <ArrowRight size={13} />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  </BaseLayout>
+    </BaseLayout>
   );
 }

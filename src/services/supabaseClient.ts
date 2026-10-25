@@ -1,7 +1,11 @@
+import { getDepartment, DEPARTMENTS } from '../data/departments';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { UserProfile, Slip, VisitRecord, MedicalReport } from '../types';
 
-const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL || 'https://ebbuihktuumeazkyuscg.supabase.co').trim();
+const SUPABASE_URL = (
+  import.meta.env.VITE_SUPABASE_URL ||
+  'https://ebbuihktuumeazkyuscg.supabase.co'
+).trim();
 const SUPABASE_ANON_KEY = (
   import.meta.env.VITE_SUPABASE_ANON_KEY ||
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImViYnVpaGt0dXVtZWF6a3l1c2NnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4NjUwODIsImV4cCI6MjEwODQ0MTA4Mn0.i0Yycc1NWNNznpXgtshK5ZXcOUCbLzw8ger1uQ7s7aE'
@@ -21,7 +25,9 @@ try {
 
 // ─── USER PROFILES ──────────────────────────────────────────────────────────
 
-export async function syncUserProfileToSupabase(user: UserProfile): Promise<boolean> {
+export async function syncUserProfileToSupabase(
+  user: UserProfile
+): Promise<boolean> {
   if (!supabase || !user?.id) return false;
   try {
     const payload = {
@@ -57,7 +63,9 @@ export async function syncUserProfileToSupabase(user: UserProfile): Promise<bool
   }
 }
 
-export async function fetchSupabaseUser(idOrPhone: string): Promise<UserProfile | null> {
+export async function fetchSupabaseUser(
+  idOrPhone: string
+): Promise<UserProfile | null> {
   if (!supabase || !idOrPhone) return null;
   try {
     const isPhone = /^\d{10}$/.test(idOrPhone.trim());
@@ -90,7 +98,9 @@ export async function fetchSupabaseUser(idOrPhone: string): Promise<UserProfile 
   }
 }
 
-export async function checkEmailRegistered(email: string): Promise<UserProfile | null> {
+export async function checkEmailRegistered(
+  email: string
+): Promise<UserProfile | null> {
   const cleanEmail = email.trim().toLowerCase();
   if (!cleanEmail) return null;
 
@@ -126,10 +136,17 @@ export async function checkEmailRegistered(email: string): Promise<UserProfile |
 
   // 2. Check locally cached registered user
   try {
-    const raw = typeof window !== 'undefined' ? localStorage.getItem('vd-auth-user') : null;
+    const raw =
+      typeof window !== 'undefined'
+        ? localStorage.getItem('vd-auth-user')
+        : null;
     if (raw) {
       const cached = JSON.parse(raw);
-      if (cached?.email && cached.email.trim().toLowerCase() === cleanEmail && !cached.isGuest) {
+      if (
+        cached?.email &&
+        cached.email.trim().toLowerCase() === cleanEmail &&
+        !cached.isGuest
+      ) {
         return cached;
       }
     }
@@ -154,15 +171,21 @@ export async function syncSlipToSupabase(slip: Slip): Promise<boolean> {
       patient_gender: slip.patientGender || null,
       patient_email: slip.patientEmail || null,
       department_id: slip.department?.id || null,
-      department_name: slip.department?.nameKey || slip.patientPurposeKey || null,
+      department_name:
+        slip.department?.nameKey || slip.patientPurposeKey || null,
       doctor_name: slip.doctorName || slip.department?.doctorName || null,
-      room_number: slip.roomNumber || (slip.department?.roomNumbers?.[0] ?? null),
-      floor: slip.floor !== undefined ? Number(slip.floor) : (slip.department?.floor ?? 0),
+      room_number:
+        slip.roomNumber || (slip.department?.roomNumbers?.[0] ?? null),
+      floor:
+        slip.floor !== undefined
+          ? Number(slip.floor)
+          : (slip.department?.floor ?? 0),
       wing: slip.wing || slip.department?.wing || null,
       purpose_id: slip.patientPurposeKey || null,
       status: slip.status || 'waiting',
       estimated_wait: slip.estimatedWait || 15,
-      people_ahead: slip.peopleAhead !== undefined ? Number(slip.peopleAhead) : 3,
+      people_ahead:
+        slip.peopleAhead !== undefined ? Number(slip.peopleAhead) : 3,
       accessibility_needs: slip.accessibilityNeeds || [],
       navigation_steps: slip.steps || [],
       human_readable_direction: slip.humanReadableDirection || null,
@@ -189,7 +212,10 @@ export async function syncSlipToSupabase(slip: Slip): Promise<boolean> {
 export async function fetchSupabaseSlips(userId?: string): Promise<Slip[]> {
   if (!supabase) return [];
   try {
-    let query = supabase.from('slips').select('*').order('generated_at', { ascending: false });
+    let query = supabase
+      .from('slips')
+      .select('*')
+      .order('generated_at', { ascending: false });
     if (userId) {
       query = query.eq('user_id', userId);
     }
@@ -204,10 +230,12 @@ export async function fetchSupabaseSlips(userId?: string): Promise<Slip[]> {
       estimatedWait: row.estimated_wait || 15,
       peopleAhead: row.people_ahead,
       status: row.status,
-      doctorName: row.doctor_name,
-      roomNumber: row.room_number,
-      floor: row.floor,
-      wing: row.wing,
+      doctorName: (getDepartment(row.department_id) || DEPARTMENTS[0])
+        .doctorName,
+      roomNumber: (getDepartment(row.department_id) || DEPARTMENTS[0])
+        .roomNumbers[0],
+      floor: (getDepartment(row.department_id) || DEPARTMENTS[0]).floor,
+      wing: (getDepartment(row.department_id) || DEPARTMENTS[0]).wing,
       humanReadableDirection: row.human_readable_direction,
       patientName: row.patient_name,
       patientAge: row.patient_age,
@@ -217,19 +245,7 @@ export async function fetchSupabaseSlips(userId?: string): Promise<Slip[]> {
       isGuest: Boolean(row.is_guest),
       userId: row.user_id,
       steps: Array.isArray(row.navigation_steps) ? row.navigation_steps : [],
-      department: {
-        id: row.department_id || 'dept-opd',
-        nameKey: row.department_name || 'General OPD',
-        descriptionKey: 'General physician consultation',
-        category: 'consultation',
-        building: 'Building A',
-        floor: row.floor || 0,
-        roomNumbers: row.room_number ? [row.room_number] : ['101'],
-        landmark: 'Near Main Entrance',
-        estimatedWalkMinutes: 2,
-        doctorName: row.doctor_name,
-        wing: row.wing,
-      },
+      department: getDepartment(row.department_id) || DEPARTMENTS[0],
     }));
   } catch (err) {
     console.warn('[Supabase] Failed to fetch slips from Supabase:', err);
@@ -239,10 +255,15 @@ export async function fetchSupabaseSlips(userId?: string): Promise<Slip[]> {
 
 // ─── VISITS & REPORTS ───────────────────────────────────────────────────────
 
-export async function fetchSupabaseVisits(userId?: string): Promise<VisitRecord[]> {
+export async function fetchSupabaseVisits(
+  userId?: string
+): Promise<VisitRecord[]> {
   if (!supabase) return [];
   try {
-    let query = supabase.from('visits').select('*').order('created_at', { ascending: false });
+    let query = supabase
+      .from('visits')
+      .select('*')
+      .order('created_at', { ascending: false });
     if (userId) {
       query = query.eq('user_id', userId);
     }
@@ -264,7 +285,10 @@ export async function fetchSupabaseVisits(userId?: string): Promise<VisitRecord[
   }
 }
 
-export async function syncVisitToSupabase(visit: VisitRecord, userId: string): Promise<boolean> {
+export async function syncVisitToSupabase(
+  visit: VisitRecord,
+  userId: string
+): Promise<boolean> {
   if (!supabase || !visit?.id) return false;
   try {
     const { error } = await supabase.from('visits').upsert(
@@ -286,10 +310,15 @@ export async function syncVisitToSupabase(visit: VisitRecord, userId: string): P
   }
 }
 
-export async function fetchSupabaseReports(userId?: string): Promise<MedicalReport[]> {
+export async function fetchSupabaseReports(
+  userId?: string
+): Promise<MedicalReport[]> {
   if (!supabase) return [];
   try {
-    let query = supabase.from('medical_reports').select('*').order('created_at', { ascending: false });
+    let query = supabase
+      .from('medical_reports')
+      .select('*')
+      .order('created_at', { ascending: false });
     if (userId) {
       query = query.eq('user_id', userId);
     }

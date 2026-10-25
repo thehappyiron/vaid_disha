@@ -1,3 +1,4 @@
+import { findDepartmentByName, DEPARTMENT_BY_ID } from '../../data/departments';
 import { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import {
@@ -35,8 +36,11 @@ export function PatientCompletionPage() {
   const [searchParams] = useSearchParams();
 
   const tokenParam = searchParams.get('token') || 'CARD-1042';
-  const doctorParam = searchParams.get('doctor') || 'Dr. S. Sharma';
-  const deptParam = searchParams.get('dept') || 'Cardiology OPD';
+  const department =
+    findDepartmentByName(searchParams.get('dept') || '') ||
+    DEPARTMENT_BY_ID['opd-general-2'];
+  const doctorParam = department.doctorName;
+  const deptParam = department.name;
 
   // Feedback state
   const [rating, setRating] = useState<number>(5);
@@ -65,7 +69,11 @@ export function PatientCompletionPage() {
     try {
       const existing = localStorage.getItem('vd-patient-feedback');
       const list = existing ? JSON.parse(existing) : [];
-      list.unshift({ ...feedback, token: tokenParam, timestamp: new Date().toISOString() });
+      list.unshift({
+        ...feedback,
+        token: tokenParam,
+        timestamp: new Date().toISOString(),
+      });
       localStorage.setItem('vd-patient-feedback', JSON.stringify(list));
     } catch {
       // ignore
@@ -115,24 +123,33 @@ export function PatientCompletionPage() {
 
             <div className="p-2.5 px-3.5 rounded-xl bg-white/90 border border-emerald-300 flex items-center gap-2">
               <span className="text-xs font-bold text-emerald-800">Token:</span>
-              <span className="font-mono font-black text-base text-emerald-700">{tokenParam}</span>
+              <span className="font-mono font-black text-base text-emerald-700">
+                {tokenParam}
+              </span>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-emerald-200 text-xs sm:text-sm font-semibold">
             <div className="flex items-center gap-2 text-emerald-900">
               <Building2 size={16} className="text-emerald-700 shrink-0" />
-              <span>Department: <strong>{deptParam}</strong></span>
+              <span>
+                Department: <strong>{deptParam}</strong>
+              </span>
             </div>
             <div className="flex items-center gap-2 text-emerald-900">
               <Stethoscope size={16} className="text-emerald-700 shrink-0" />
-              <span>Attending Specialist: <strong>{doctorParam}</strong></span>
+              <span>
+                Attending Specialist: <strong>{doctorParam}</strong>
+              </span>
             </div>
           </div>
 
           <div className="p-3 rounded-xl bg-white/80 text-xs font-semibold text-emerald-900 flex items-center gap-2">
             <Sparkles size={16} className="text-emerald-600 shrink-0" />
-            <span>Digital prescription and diagnostic orders have been saved to your health profile.</span>
+            <span>
+              Digital prescription and diagnostic orders have been saved to your
+              health profile.
+            </span>
           </div>
         </div>
 
@@ -144,7 +161,9 @@ export function PatientCompletionPage() {
             <h2 className="text-lg font-black text-[var(--color-text)] flex items-center gap-2">
               <span>Next Steps Following Consultation</span>
             </h2>
-            <span className="text-xs font-bold text-[var(--color-text-muted)]">3 Steps Recommended</span>
+            <span className="text-xs font-bold text-[var(--color-text-muted)]">
+              3 Steps Recommended
+            </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -162,7 +181,9 @@ export function PatientCompletionPage() {
                     Collect Prescribed Medicines
                   </h3>
                   <p className="text-xs sm:text-sm font-medium text-[var(--color-text-muted)] mt-1 leading-relaxed">
-                    Prescribed medicines have been routed to <strong>Hospital Pharmacy Counter 3</strong> (Ground Floor, Main OPD Wing).
+                    Prescribed medicines have been routed to{' '}
+                    <strong>Pharmacy (G-04)</strong> (Ground Floor, Main
+                    hospital).
                   </p>
                 </div>
               </div>
@@ -180,7 +201,7 @@ export function PatientCompletionPage() {
                   icon={<Navigation size={18} />}
                   onClick={() =>
                     navigate('/patient/guidance', {
-                      state: { departmentId: 'pharmacy' },
+                      state: { destinationNodeId: 'pharmacy' },
                     })
                   }
                 >
@@ -203,7 +224,8 @@ export function PatientCompletionPage() {
                     Lab & Radiology Reports
                   </h3>
                   <p className="text-xs sm:text-sm font-medium text-[var(--color-text-muted)] mt-1 leading-relaxed">
-                    View test results digitally or pick up printed reports at the <strong>Diagnostics Wing Reception</strong>.
+                    View test results digitally or pick up printed reports at
+                    the <strong>Diagnostics Wing Reception</strong>.
                   </p>
                 </div>
               </div>
@@ -211,7 +233,9 @@ export function PatientCompletionPage() {
               <div className="pt-2 border-t border-[var(--color-border)] flex flex-col gap-2">
                 <div className="flex items-center justify-between text-xs text-[var(--color-text-muted)] font-semibold">
                   <span>Digital Report Status:</span>
-                  <span className="font-bold text-emerald-600">Ready for Download</span>
+                  <span className="font-bold text-emerald-600">
+                    Ready for Download
+                  </span>
                 </div>
 
                 <Button
@@ -233,8 +257,14 @@ export function PatientCompletionPage() {
           {/* Report download feedback toast */}
           {showReportsToast && (
             <div className="p-3.5 rounded-xl bg-indigo-50 border border-indigo-300 text-indigo-950 text-xs sm:text-sm font-bold flex items-center justify-between gap-2 animate-fadeIn">
-              <span>Diagnostic report downloaded to your device & saved to Visit History!</span>
-              <Link to="/patient/history" className="underline font-black text-indigo-700">
+              <span>
+                Diagnostic report downloaded to your device & saved to Visit
+                History!
+              </span>
+              <Link
+                to="/patient/history"
+                className="underline font-black text-indigo-700"
+              >
                 Open History
               </Link>
             </div>
@@ -254,11 +284,16 @@ export function PatientCompletionPage() {
                 </h3>
               </div>
 
-              <span className="text-xs text-[var(--color-text-muted)] font-semibold">1 minute</span>
+              <span className="text-xs text-[var(--color-text-muted)] font-semibold">
+                1 minute
+              </span>
             </div>
 
             {!feedbackSubmitted ? (
-              <form onSubmit={handleFeedbackSubmit} className="flex flex-col gap-4">
+              <form
+                onSubmit={handleFeedbackSubmit}
+                className="flex flex-col gap-4"
+              >
                 {/* Star Rating */}
                 <div className="flex flex-col items-center gap-1.5 p-4 rounded-xl bg-[var(--color-surface-2)]">
                   <span className="text-xs font-bold text-[var(--color-text-muted)]">
@@ -325,7 +360,10 @@ export function PatientCompletionPage() {
 
                 {/* Comment box */}
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="feedback-comment" className="text-xs font-bold text-[var(--color-text-muted)]">
+                  <label
+                    htmlFor="feedback-comment"
+                    className="text-xs font-bold text-[var(--color-text-muted)]"
+                  >
                     Additional Comments or Suggestions (Optional)
                   </label>
                   <textarea
@@ -338,16 +376,24 @@ export function PatientCompletionPage() {
                   />
                 </div>
 
-                <Button type="submit" variant="primary" size="md" className="font-bold">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="md"
+                  className="font-bold"
+                >
                   Submit Feedback
                 </Button>
               </form>
             ) : (
               <div className="p-5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-950 flex flex-col items-center text-center gap-2">
                 <CheckCircle2 size={32} className="text-emerald-600" />
-                <h4 className="font-black text-base">Thank you for your feedback!</h4>
+                <h4 className="font-black text-base">
+                  Thank you for your feedback!
+                </h4>
                 <p className="text-xs font-semibold text-emerald-900 max-w-sm">
-                  Your review has been submitted to hospital quality management to ensure prompt care for every patient.
+                  Your review has been submitted to hospital quality management
+                  to ensure prompt care for every patient.
                 </p>
               </div>
             )}

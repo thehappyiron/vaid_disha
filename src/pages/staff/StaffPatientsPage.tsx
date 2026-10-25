@@ -1,3 +1,4 @@
+import { findDepartmentByName } from '../../data/departments';
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -14,16 +15,24 @@ import {
 } from 'lucide-react';
 import { BaseLayout } from '../../components/layout';
 import { PageHeader } from '../../components/ui';
-import { MOCK_STAFF_PATIENTS, type StaffPatientRecord } from '../../data/mockPatientsData';
+import {
+  MOCK_STAFF_PATIENTS,
+  type StaffPatientRecord,
+} from '../../data/mockPatientsData';
 import type { LabReport } from '../../data/labReportsData';
 
 export function StaffPatientsPage() {
   const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'registered' | 'guest'>('all');
-  const [selectedPatient, setSelectedPatient] = useState<StaffPatientRecord | null>(null);
-  const [activeTab, setActiveTab] = useState<'details' | 'visits' | 'reports'>('details');
+  const [filterType, setFilterType] = useState<'all' | 'registered' | 'guest'>(
+    'all'
+  );
+  const [selectedPatient, setSelectedPatient] =
+    useState<StaffPatientRecord | null>(null);
+  const [activeTab, setActiveTab] = useState<'details' | 'visits' | 'reports'>(
+    'details'
+  );
   const [selectedReport, setSelectedReport] = useState<LabReport | null>(null);
 
   // Filter and search logic
@@ -43,14 +52,23 @@ export function StaffPatientsPage() {
       const matchUhid = patient.uhid?.toLowerCase().includes(q) || false;
       const matchDept = patient.currentDepartment.toLowerCase().includes(q);
 
-      return matchName || matchToken || matchPhone || matchAbha || matchUhid || matchDept;
+      return (
+        matchName ||
+        matchToken ||
+        matchPhone ||
+        matchAbha ||
+        matchUhid ||
+        matchDept
+      );
     });
   }, [searchQuery, filterType]);
 
   const handleOpenPatient = (patient: StaffPatientRecord) => {
     setSelectedPatient(patient);
     setActiveTab(patient.isGuest ? 'details' : 'visits');
-    setSelectedReport(patient.labReports.length > 0 ? patient.labReports[0] : null);
+    setSelectedReport(
+      patient.labReports.length > 0 ? patient.labReports[0] : null
+    );
   };
 
   const handleClosePatient = () => {
@@ -125,7 +143,8 @@ export function StaffPatientsPage() {
                     : 'bg-[var(--color-surface-2)] text-[var(--color-text-muted)] border border-[var(--color-border)] hover:bg-[var(--color-surface)]'
                 }`}
               >
-                Registered ({MOCK_STAFF_PATIENTS.filter((p) => !p.isGuest).length})
+                Registered (
+                {MOCK_STAFF_PATIENTS.filter((p) => !p.isGuest).length})
               </button>
               <button
                 type="button"
@@ -143,8 +162,11 @@ export function StaffPatientsPage() {
 
           <div className="flex items-center justify-between text-xs text-[var(--color-text-muted)] pt-1 border-t border-[var(--color-border)]">
             <span>
-              Showing <strong className="text-[var(--color-text-main)]">{filteredPatients.length}</strong> matching{' '}
-              {filteredPatients.length === 1 ? 'patient' : 'patients'}
+              Showing{' '}
+              <strong className="text-[var(--color-text-main)]">
+                {filteredPatients.length}
+              </strong>{' '}
+              matching {filteredPatients.length === 1 ? 'patient' : 'patients'}
             </span>
             <span>Click any record to inspect clinical details</span>
           </div>
@@ -153,7 +175,10 @@ export function StaffPatientsPage() {
         {/* Desktop Table View (md and above) */}
         <div className="hidden md:block bg-[var(--color-surface)] border-2 border-[var(--color-border)] rounded-2xl shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse" aria-label="Hospital Patients List">
+            <table
+              className="w-full text-left border-collapse"
+              aria-label="Hospital Patients List"
+            >
               <thead>
                 <tr className="bg-[var(--color-surface-2)] border-b-2 border-[var(--color-border)] text-xs uppercase font-bold text-[var(--color-text-muted)] tracking-wider">
                   <th scope="col" className="px-4 py-3">
@@ -215,7 +240,9 @@ export function StaffPatientsPage() {
                       <td className="px-4 py-3 text-[var(--color-text-main)] whitespace-nowrap">
                         {patient.age} yrs • {patient.gender}
                         {patient.bloodGroup && (
-                          <span className="ml-1 text-xs text-[var(--color-text-muted)]">({patient.bloodGroup})</span>
+                          <span className="ml-1 text-xs text-[var(--color-text-muted)]">
+                            ({patient.bloodGroup})
+                          </span>
                         )}
                       </td>
 
@@ -244,7 +271,9 @@ export function StaffPatientsPage() {
                             ))}
                           </div>
                         ) : (
-                          <span className="text-xs text-[var(--color-text-muted)]">—</span>
+                          <span className="text-xs text-[var(--color-text-muted)]">
+                            —
+                          </span>
                         )}
                       </td>
 
@@ -259,7 +288,10 @@ export function StaffPatientsPage() {
                             <span className="font-semibold text-emerald-700 dark:text-emerald-400">
                               {patient.previousVisits.length} visits
                             </span>
-                            <span className="text-[var(--color-text-muted)]"> • </span>
+                            <span className="text-[var(--color-text-muted)]">
+                              {' '}
+                              •{' '}
+                            </span>
                             <span className="font-semibold text-sky-700 dark:text-sky-400">
                               {patient.labReports.length} lab reports
                             </span>
@@ -287,9 +319,16 @@ export function StaffPatientsPage() {
 
                 {filteredPatients.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-[var(--color-text-muted)]">
-                      <p className="font-bold text-base text-[var(--color-text-main)] mb-1">No patient records found</p>
-                      <p className="text-xs">Try adjusting your search query or filter settings</p>
+                    <td
+                      colSpan={7}
+                      className="px-4 py-12 text-center text-[var(--color-text-muted)]"
+                    >
+                      <p className="font-bold text-base text-[var(--color-text-main)] mb-1">
+                        No patient records found
+                      </p>
+                      <p className="text-xs">
+                        Try adjusting your search query or filter settings
+                      </p>
                     </td>
                   </tr>
                 )}
@@ -339,8 +378,12 @@ export function StaffPatientsPage() {
                 </div>
 
                 <div className="text-xs bg-[var(--color-surface-2)] p-2.5 rounded-xl border border-[var(--color-border)] space-y-1">
-                  <div className="font-bold text-[var(--color-text-main)]">{patient.currentDepartment}</div>
-                  <div className="text-[var(--color-text-muted)] line-clamp-2">{patient.currentEncounterPurpose}</div>
+                  <div className="font-bold text-[var(--color-text-main)]">
+                    {patient.currentDepartment}
+                  </div>
+                  <div className="text-[var(--color-text-muted)] line-clamp-2">
+                    {patient.currentEncounterPurpose}
+                  </div>
                 </div>
 
                 {patient.accessibilityNeeds.length > 0 && (
@@ -364,8 +407,14 @@ export function StaffPatientsPage() {
                     </span>
                   ) : (
                     <span className="text-xs font-medium text-[var(--color-text-muted)]">
-                      <strong className="text-emerald-600">{patient.previousVisits.length}</strong> visits •{' '}
-                      <strong className="text-sky-600">{patient.labReports.length}</strong> reports
+                      <strong className="text-emerald-600">
+                        {patient.previousVisits.length}
+                      </strong>{' '}
+                      visits •{' '}
+                      <strong className="text-sky-600">
+                        {patient.labReports.length}
+                      </strong>{' '}
+                      reports
                     </span>
                   )}
 
@@ -383,7 +432,9 @@ export function StaffPatientsPage() {
 
           {filteredPatients.length === 0 && (
             <div className="bg-[var(--color-surface)] border-2 border-[var(--color-border)] rounded-2xl p-8 text-center text-[var(--color-text-muted)]">
-              <p className="font-bold text-sm text-[var(--color-text-main)] mb-1">No patient records found</p>
+              <p className="font-bold text-sm text-[var(--color-text-main)] mb-1">
+                No patient records found
+              </p>
               <p className="text-xs">Adjust your search or clear filters</p>
             </div>
           )}
@@ -420,7 +471,10 @@ export function StaffPatientsPage() {
                     )}
                   </div>
 
-                  <h2 id="patient-modal-title" className="text-xl sm:text-2xl font-black text-[var(--color-text-main)] mt-1 truncate">
+                  <h2
+                    id="patient-modal-title"
+                    className="text-xl sm:text-2xl font-black text-[var(--color-text-main)] mt-1 truncate"
+                  >
                     {selectedPatient.isGuest
                       ? selectedPatient.name.includes('(Guest)')
                         ? selectedPatient.name
@@ -428,8 +482,10 @@ export function StaffPatientsPage() {
                       : selectedPatient.name}
                   </h2>
                   <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                    {selectedPatient.age} yrs • {selectedPatient.gender} • Blood Group: {selectedPatient.bloodGroup || 'Not specified'}
-                    {selectedPatient.phone && ` • Phone: ${selectedPatient.phone}`}
+                    {selectedPatient.age} yrs • {selectedPatient.gender} • Blood
+                    Group: {selectedPatient.bloodGroup || 'Not specified'}
+                    {selectedPatient.phone &&
+                      ` • Phone: ${selectedPatient.phone}`}
                   </p>
                 </div>
 
@@ -494,16 +550,24 @@ export function StaffPatientsPage() {
                     {/* Guest banner if guest */}
                     {selectedPatient.isGuest && (
                       <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-200 dark:border-amber-800 flex items-start gap-3">
-                        <Info size={20} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                        <Info
+                          size={20}
+                          className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5"
+                        />
                         <div className="space-y-1 text-xs">
                           <h4 className="font-bold text-sm text-amber-900 dark:text-amber-200">
                             No saved history (Guest)
                           </h4>
                           <p className="text-amber-800/90 dark:text-amber-300/90 leading-relaxed">
-                            This patient visited as an unregistered Guest. Historical clinical records, past prescriptions, and lab diagnostics are not linked to a hospital UHID or ABHA ID. Only current encounter details are tracked.
+                            This patient visited as an unregistered Guest.
+                            Historical clinical records, past prescriptions, and
+                            lab diagnostics are not linked to a hospital UHID or
+                            ABHA ID. Only current encounter details are tracked.
                           </p>
                           <p className="text-amber-800/70 dark:text-amber-300/70 pt-1">
-                            Tip: To persist longitudinal records, the patient can complete ABHA linking at Central Registration Counter 1 before discharge.
+                            Tip: To persist longitudinal records, the patient
+                            can complete ABHA linking at Central Registration
+                            Counter 1 before discharge.
                           </p>
                         </div>
                       </div>
@@ -512,22 +576,34 @@ export function StaffPatientsPage() {
                     {/* Basic Details Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                       <div className="p-3.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] space-y-1">
-                        <div className="text-[11px] font-bold uppercase text-[var(--color-text-muted)]">Current Department</div>
-                        <div className="font-bold text-sm text-[var(--color-text-main)]">{selectedPatient.currentDepartment}</div>
-                        <div className="text-xs text-[var(--color-text-muted)]">Attending: {selectedPatient.currentDoctor}</div>
+                        <div className="text-[11px] font-bold uppercase text-[var(--color-text-muted)]">
+                          Current Department
+                        </div>
+                        <div className="font-bold text-sm text-[var(--color-text-main)]">
+                          {selectedPatient.currentDepartment}
+                        </div>
+                        <div className="text-xs text-[var(--color-text-muted)]">
+                          Attending: {selectedPatient.currentDoctor}
+                        </div>
                       </div>
 
                       <div className="p-3.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] space-y-1">
-                        <div className="text-[11px] font-bold uppercase text-[var(--color-text-muted)]">Encounter Purpose</div>
+                        <div className="text-[11px] font-bold uppercase text-[var(--color-text-muted)]">
+                          Encounter Purpose
+                        </div>
                         <div className="font-semibold text-sm text-[var(--color-text-main)] leading-snug">
                           {selectedPatient.currentEncounterPurpose}
                         </div>
                       </div>
 
                       <div className="p-3.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] space-y-1">
-                        <div className="text-[11px] font-bold uppercase text-[var(--color-text-muted)]">Identity & ABHA</div>
+                        <div className="text-[11px] font-bold uppercase text-[var(--color-text-muted)]">
+                          Identity & ABHA
+                        </div>
                         <div className="font-mono text-xs font-bold text-[var(--color-text-main)]">
-                          {selectedPatient.abhaId ? selectedPatient.abhaId : 'None (Guest Mode)'}
+                          {selectedPatient.abhaId
+                            ? selectedPatient.abhaId
+                            : 'None (Guest Mode)'}
                         </div>
                         {selectedPatient.uhid && (
                           <div className="text-xs font-mono text-[var(--color-text-muted)]">
@@ -537,30 +613,45 @@ export function StaffPatientsPage() {
                       </div>
 
                       <div className="p-3.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] space-y-1">
-                        <div className="text-[11px] font-bold uppercase text-[var(--color-text-muted)]">Contact Phone</div>
-                        <div className="font-medium text-sm text-[var(--color-text-main)]">{selectedPatient.phone}</div>
+                        <div className="text-[11px] font-bold uppercase text-[var(--color-text-muted)]">
+                          Contact Phone
+                        </div>
+                        <div className="font-medium text-sm text-[var(--color-text-main)]">
+                          {selectedPatient.phone}
+                        </div>
                         {selectedPatient.emergencyContact && (
-                          <div className="text-xs text-[var(--color-text-muted)] truncate" title={selectedPatient.emergencyContact}>
+                          <div
+                            className="text-xs text-[var(--color-text-muted)] truncate"
+                            title={selectedPatient.emergencyContact}
+                          >
                             ICE: {selectedPatient.emergencyContact}
                           </div>
                         )}
                       </div>
 
                       <div className="p-3.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] space-y-1">
-                        <div className="text-[11px] font-bold uppercase text-[var(--color-text-muted)]">Registration Date</div>
+                        <div className="text-[11px] font-bold uppercase text-[var(--color-text-muted)]">
+                          Registration Date
+                        </div>
                         <div className="font-medium text-sm text-[var(--color-text-main)]">
-                          {selectedPatient.registeredDate || 'Today (Walk-in Guest)'}
+                          {selectedPatient.registeredDate ||
+                            'Today (Walk-in Guest)'}
                         </div>
                       </div>
 
                       <div className="p-3.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] space-y-1">
-                        <div className="text-[11px] font-bold uppercase text-[var(--color-text-muted)]">Clinical Allergies</div>
-                        {selectedPatient.allergies && selectedPatient.allergies.length > 0 ? (
+                        <div className="text-[11px] font-bold uppercase text-[var(--color-text-muted)]">
+                          Clinical Allergies
+                        </div>
+                        {selectedPatient.allergies &&
+                        selectedPatient.allergies.length > 0 ? (
                           <div className="text-xs font-bold text-red-600 dark:text-red-400">
                             {selectedPatient.allergies.join(', ')}
                           </div>
                         ) : (
-                          <div className="text-xs text-[var(--color-text-muted)]">No known drug allergies</div>
+                          <div className="text-xs text-[var(--color-text-muted)]">
+                            No known drug allergies
+                          </div>
                         )}
                       </div>
                     </div>
@@ -568,7 +659,10 @@ export function StaffPatientsPage() {
                     {/* Accessibility Needs Panel */}
                     <div className="p-4 sm:p-5 rounded-2xl border-2 border-[var(--color-border)] bg-[var(--color-surface)] space-y-3">
                       <div className="flex items-center gap-2">
-                        <Accessibility size={20} className="text-[var(--color-primary-500)]" />
+                        <Accessibility
+                          size={20}
+                          className="text-[var(--color-primary-500)]"
+                        />
                         <h4 className="font-bold text-base text-[var(--color-text-main)]">
                           Accessibility & Triage Needs
                         </h4>
@@ -589,7 +683,8 @@ export function StaffPatientsPage() {
                                   {need.replace('_', ' ')}
                                 </span>
                                 <span className="text-[11px] text-blue-800/80 dark:text-blue-300/80 block">
-                                  Prioritized in queue & hospital wayfinding route
+                                  Prioritized in queue & hospital wayfinding
+                                  route
                                 </span>
                               </div>
                             </div>
@@ -597,7 +692,8 @@ export function StaffPatientsPage() {
                         </div>
                       ) : (
                         <p className="text-xs text-[var(--color-text-muted)]">
-                          No special accessibility accommodations declared by patient during registration.
+                          No special accessibility accommodations declared by
+                          patient during registration.
                         </p>
                       )}
                     </div>
@@ -609,12 +705,17 @@ export function StaffPatientsPage() {
                   <div className="space-y-4">
                     {selectedPatient.isGuest ? (
                       <div className="p-8 text-center rounded-2xl border-2 border-dashed border-amber-300 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 space-y-2">
-                        <AlertTriangle size={32} className="mx-auto text-amber-600 dark:text-amber-400" />
+                        <AlertTriangle
+                          size={32}
+                          className="mx-auto text-amber-600 dark:text-amber-400"
+                        />
                         <h4 className="font-bold text-base text-[var(--color-text-main)]">
                           No saved history (Guest)
                         </h4>
                         <p className="text-xs text-[var(--color-text-muted)] max-w-md mx-auto leading-relaxed">
-                          Previous consultations are not retained for Guest patient profiles. This visitor is registered under an ephemeral session for today's encounter only.
+                          Previous consultations are not retained for Guest
+                          patient profiles. This visitor is registered under an
+                          ephemeral session for today's encounter only.
                         </p>
                       </div>
                     ) : selectedPatient.previousVisits.length > 0 ? (
@@ -630,7 +731,8 @@ export function StaffPatientsPage() {
                                   {visit.departmentName}
                                 </div>
                                 <div className="text-xs text-[var(--color-text-muted)]">
-                                  Attending: <strong>{visit.doctorName}</strong> • Token: {visit.tokenNumber}
+                                  Attending: <strong>{visit.doctorName}</strong>{' '}
+                                  • Token: {visit.tokenNumber}
                                 </div>
                               </div>
                               <div className="flex items-center gap-2">
@@ -678,12 +780,18 @@ export function StaffPatientsPage() {
                   <div className="space-y-4">
                     {selectedPatient.isGuest ? (
                       <div className="p-8 text-center rounded-2xl border-2 border-dashed border-amber-300 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 space-y-2">
-                        <AlertTriangle size={32} className="mx-auto text-amber-600 dark:text-amber-400" />
+                        <AlertTriangle
+                          size={32}
+                          className="mx-auto text-amber-600 dark:text-amber-400"
+                        />
                         <h4 className="font-bold text-base text-[var(--color-text-main)]">
                           No saved history (Guest)
                         </h4>
                         <p className="text-xs text-[var(--color-text-muted)] max-w-md mx-auto leading-relaxed">
-                          Laboratory diagnostics from previous visits are not linked to Guest accounts. Any tests ordered during today's visit can be viewed at the Pathology collection desk with token #{selectedPatient.token}.
+                          Laboratory diagnostics from previous visits are not
+                          linked to Guest accounts. Any tests ordered during
+                          today's visit can be viewed at the Pathology
+                          collection desk with token #{selectedPatient.token}.
                         </p>
                       </div>
                     ) : selectedPatient.labReports.length > 0 ? (
@@ -716,7 +824,8 @@ export function StaffPatientsPage() {
                                   {selectedReport.testName}
                                 </h4>
                                 <p className="text-xs text-[var(--color-text-muted)]">
-                                  {selectedReport.department} • Sample #{selectedReport.sampleId}
+                                  {selectedReport.department} • Sample #
+                                  {selectedReport.sampleId}
                                 </p>
                               </div>
                               <div className="flex items-center gap-2">
@@ -735,7 +844,9 @@ export function StaffPatientsPage() {
                               <span className="font-bold uppercase text-[10px] tracking-wider text-[var(--color-text-muted)] block">
                                 Clinical Pathology Note
                               </span>
-                              <p className="text-[var(--color-text-main)] leading-relaxed">{selectedReport.summary}</p>
+                              <p className="text-[var(--color-text-main)] leading-relaxed">
+                                {selectedReport.summary}
+                              </p>
                             </div>
 
                             {/* Parameters Table */}
@@ -745,38 +856,50 @@ export function StaffPatientsPage() {
                                   <thead>
                                     <tr className="bg-[var(--color-surface-2)] border-b border-[var(--color-border)] font-bold text-[var(--color-text-muted)] uppercase">
                                       <th className="px-3 py-2.5">Parameter</th>
-                                      <th className="px-3 py-2.5">Measured Value</th>
-                                      <th className="px-3 py-2.5">Normal Reference Range</th>
-                                      <th className="px-3 py-2.5">Status Flag</th>
+                                      <th className="px-3 py-2.5">
+                                        Measured Value
+                                      </th>
+                                      <th className="px-3 py-2.5">
+                                        Normal Reference Range
+                                      </th>
+                                      <th className="px-3 py-2.5">
+                                        Status Flag
+                                      </th>
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-[var(--color-border)]">
-                                    {selectedReport.parameters.map((param, idx) => (
-                                      <tr key={idx} className="hover:bg-[var(--color-surface-2)]/50">
-                                        <td className="px-3 py-2.5 font-semibold text-[var(--color-text-main)]">
-                                          {param.name}
-                                        </td>
-                                        <td className="px-3 py-2.5 font-bold font-mono text-[var(--color-text-main)]">
-                                          {param.value} {param.unit}
-                                        </td>
-                                        <td className="px-3 py-2.5 text-[var(--color-text-muted)] font-mono">
-                                          {param.normalRange} {param.unit}
-                                        </td>
-                                        <td className="px-3 py-2.5">
-                                          {param.isNormal ? (
-                                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
-                                              <CheckCircle2 size={12} />
-                                              Within normal range
-                                            </span>
-                                          ) : (
-                                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-800">
-                                              <AlertTriangle size={12} />
-                                              Outside normal range ({param.flag.toUpperCase()})
-                                            </span>
-                                          )}
-                                        </td>
-                                      </tr>
-                                    ))}
+                                    {selectedReport.parameters.map(
+                                      (param, idx) => (
+                                        <tr
+                                          key={idx}
+                                          className="hover:bg-[var(--color-surface-2)]/50"
+                                        >
+                                          <td className="px-3 py-2.5 font-semibold text-[var(--color-text-main)]">
+                                            {param.name}
+                                          </td>
+                                          <td className="px-3 py-2.5 font-bold font-mono text-[var(--color-text-main)]">
+                                            {param.value} {param.unit}
+                                          </td>
+                                          <td className="px-3 py-2.5 text-[var(--color-text-muted)] font-mono">
+                                            {param.normalRange} {param.unit}
+                                          </td>
+                                          <td className="px-3 py-2.5">
+                                            {param.isNormal ? (
+                                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
+                                                <CheckCircle2 size={12} />
+                                                Within normal range
+                                              </span>
+                                            ) : (
+                                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-800">
+                                                <AlertTriangle size={12} />
+                                                Outside normal range (
+                                                {param.flag.toUpperCase()})
+                                              </span>
+                                            )}
+                                          </td>
+                                        </tr>
+                                      )
+                                    )}
                                   </tbody>
                                 </table>
                               </div>
@@ -786,7 +909,11 @@ export function StaffPatientsPage() {
                             <div className="flex items-center gap-2 pt-2 border-t border-[var(--color-border)]">
                               <button
                                 type="button"
-                                onClick={() => alert('Diagnostic Report print preview initialized.')}
+                                onClick={() =>
+                                  alert(
+                                    'Diagnostic Report print preview initialized.'
+                                  )
+                                }
                                 className="btn btn-ghost btn-sm px-3 py-1.5 rounded-xl border border-[var(--color-border)] text-xs font-bold flex items-center gap-1.5"
                               >
                                 <Printer size={14} />
@@ -794,7 +921,9 @@ export function StaffPatientsPage() {
                               </button>
                               <button
                                 type="button"
-                                onClick={() => alert('Report PDF download complete.')}
+                                onClick={() =>
+                                  alert('Report PDF download complete.')
+                                }
                                 className="btn btn-ghost btn-sm px-3 py-1.5 rounded-xl border border-[var(--color-border)] text-xs font-bold flex items-center gap-1.5"
                               >
                                 <Download size={14} />
@@ -803,17 +932,33 @@ export function StaffPatientsPage() {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  void import('../../services/emailService').then((mail) => {
-                                    mail.notifyReportsReady({
-                                      token: selectedPatient.token || 'CARD-102',
-                                      patientName: selectedPatient.name,
-                                      doctorName: selectedPatient.currentDoctor || 'Dr. Sharma',
-                                      room: 'Room 204',
-                                      floor: 'Floor 2',
-                                      minutes: 10,
-                                    });
-                                    alert(`Email notification sent to ${selectedPatient.name}: Reports ready to return to ${selectedPatient.currentDoctor || 'the doctor'}.`);
-                                  });
+                                  void import('../../services/emailService').then(
+                                    (mail) => {
+                                      mail.notifyReportsReady({
+                                        token:
+                                          selectedPatient.token || 'CARD-102',
+                                        patientName: selectedPatient.name,
+                                        doctorName:
+                                          selectedPatient.currentDoctor ||
+                                          'Dr. Sharma',
+                                        room:
+                                          findDepartmentByName(
+                                            selectedPatient.currentDepartment,
+                                            selectedPatient.currentDoctor
+                                          )?.roomNumbers[0] || '1',
+                                        floor: String(
+                                          findDepartmentByName(
+                                            selectedPatient.currentDepartment,
+                                            selectedPatient.currentDoctor
+                                          )?.floor ?? 1
+                                        ),
+                                        minutes: 10,
+                                      });
+                                      alert(
+                                        `Email notification sent to ${selectedPatient.name}: Reports ready to return to ${selectedPatient.currentDoctor || 'the doctor'}.`
+                                      );
+                                    }
+                                  );
                                 }}
                                 className="btn btn-primary btn-sm px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 ml-auto bg-[var(--color-primary-500)] text-white hover:brightness-105"
                               >

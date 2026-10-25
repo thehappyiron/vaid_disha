@@ -1,17 +1,32 @@
 import hospitalGraphData from '../data/hospitalGraph.json';
+import { getDepartment } from '../data/departments';
 
 export interface GraphNode {
   id: string;
   name: string;
   nameKey: string;
   floor: number;
-  category: 'entrance' | 'service' | 'facility' | 'clinic' | 'corridor' | 'vertical' | 'waiting' | 'pillar';
+  category:
+    | 'entrance'
+    | 'service'
+    | 'facility'
+    | 'clinic'
+    | 'corridor'
+    | 'vertical'
+    | 'waiting'
+    | 'pillar';
   pillarCode?: string;
   departmentId?: string;
   roomNumber?: string;
   x: number;
   y: number;
   isLandmark?: boolean;
+  landmark: string;
+  landmarkKey?: string;
+  bounds?: { x: number; y: number; width: number; height: number };
+  icon?: string;
+  mapTone?: string;
+  facilityCategory?: string;
 }
 
 export interface GraphEdge {
@@ -21,6 +36,7 @@ export interface GraphEdge {
   type: 'corridor' | 'lift' | 'stairs';
   direction: 'straight' | 'left' | 'right' | 'up' | 'down';
   instruction: string;
+  usesStairs?: boolean;
 }
 
 export interface GuidanceStep {
@@ -28,7 +44,13 @@ export interface GuidanceStep {
   fromNode: GraphNode;
   toNode: GraphNode;
   edge?: GraphEdge;
-  icon: 'arrow-up' | 'arrow-left' | 'arrow-right' | 'elevator' | 'stairs' | 'map-pin';
+  icon:
+    | 'arrow-up'
+    | 'arrow-left'
+    | 'arrow-right'
+    | 'elevator'
+    | 'stairs'
+    | 'map-pin';
   templateKey: string;
   params: {
     landmark: string;
@@ -116,7 +138,9 @@ initializeAdjacency();
 /**
  * Get all landmarks grouped by floor level (0, 1, 2)
  */
-export function getLandmarksGrouped(query?: string): { floor: number; landmarks: GraphNode[] }[] {
+export function getLandmarksGrouped(
+  query?: string
+): { floor: number; landmarks: GraphNode[] }[] {
   const cleanQuery = query?.toLowerCase().trim() || '';
   const filtered = rawNodes.filter((node) => {
     // Only include meaningful landmarks or clinics or vertical cores
@@ -153,14 +177,32 @@ export function findNodeByPillarCode(code: string): GraphNode | undefined {
  * Find node by department ID (e.g. "opd-cardiology", "pharmacy")
  */
 export function findNodeByDepartmentId(deptId: string): GraphNode | undefined {
-  return rawNodes.find((n) => n.departmentId === deptId);
+  const department = getDepartment(deptId);
+  return rawNodes.find(
+    (n) => n.id === department?.nodeId || n.departmentId === deptId
+  );
 }
 
 /**
  * Find node by node ID
  */
 export function getNodeById(id: string): GraphNode | undefined {
-  return rawNodes.find((n) => n.id === id);
+  const aliases: Record<string, string> = {
+    'opd-cardiology': 'opd-general-2',
+    'opd-neuro': 'opd-general',
+    'billing-f0': 'registration',
+    canteen: 'registration',
+    'lift-b-f0': 'lift-a-f0',
+    'lift-b-f1': 'lift-a-f1',
+    'lift-b-f2': 'lift-a-f2',
+    'washroom-f1-acc': 'washroom-f1',
+    'washroom-f2': 'washroom-f1',
+    'water-f1': 'water-f0',
+    'water-f2': 'water-f0',
+    'waiting-f2': 'nurses-station',
+    'pillar-f2-p7': 'nurses-station',
+  };
+  return rawNodes.find((n) => n.id === (aliases[id] || id));
 }
 
 /**
@@ -177,6 +219,8 @@ export function computeRoute(
   const destNode = getNodeById(destId);
 
   if (!startNode || !destNode) return null;
+  startId = startNode.id;
+  destId = destNode.id;
 
   if (startId === destId) {
     return {
@@ -206,7 +250,10 @@ export function computeRoute(
   }
 
   const distances = new Map<string, number>();
-  const previous = new Map<string, { nodeId: string; edge: GraphEdge } | null>();
+  const previous = new Map<
+    string,
+    { nodeId: string; edge: GraphEdge } | null
+  >();
   const unvisited = new Set<string>();
 
   for (const node of rawNodes) {
@@ -225,7 +272,10 @@ export function computeRoute(
     for (const id of unvisited) {
       const d = distances.get(id)!;
       const score = d;
-      if (score < lowestScore || (score === lowestScore && currentId !== null && id < currentId)) {
+      if (
+        score < lowestScore ||
+        (score === lowestScore && currentId !== null && id < currentId)
+      ) {
         lowestScore = score;
         currentId = id;
       }
@@ -253,7 +303,10 @@ export function computeRoute(
       const alt = distances.get(currentId)! + neighbor.distance;
       if (alt < distances.get(neighbor.nodeId)!) {
         distances.set(neighbor.nodeId, alt);
-        previous.set(neighbor.nodeId, { nodeId: currentId, edge: neighbor.edge });
+        previous.set(neighbor.nodeId, {
+          nodeId: currentId,
+          edge: neighbor.edge,
+        });
       }
     }
   }
@@ -303,11 +356,19 @@ export function computeRoute(
       icon = 'stairs';
       templateKey = 'guidance.step_stairs';
     } else {
-      if (edge.direction === 'left') {
+      // A turn is relative to the preceding corridor, rather than the
+      // absolute left/right position of every point on a straight hall.
+      const previousNode =
+        i > 0 && edges[i - 1].type === 'corridor' ? nodes[i - 1] : null;
+      const cross = previousNode
+        ? (fromNode.x - previousNode.x) * (toNode.y - fromNode.y) -
+          (fromNode.y - previousNode.y) * (toNode.x - fromNode.x)
+        : 0;
+      if (cross < 0) {
         icon = 'arrow-left';
         directionWord = 'left';
         templateKey = 'guidance.step_turn_walk';
-      } else if (edge.direction === 'right') {
+      } else if (cross > 0) {
         icon = 'arrow-right';
         directionWord = 'right';
         templateKey = 'guidance.step_turn_walk';
@@ -318,7 +379,8 @@ export function computeRoute(
       }
     }
 
-    // If destination is the toNode, mark as arrival step
+    // The final walk still needs an instruction; arrival is confirmed by
+    // the patient's "I have arrived" action, rather than before they walk it.
     if (i === edges.length - 1 && toNode.id === destId) {
       steps.push({
         stepNumber: stepIndex++,
@@ -326,13 +388,15 @@ export function computeRoute(
         toNode,
         edge,
         icon: 'map-pin',
-        templateKey: 'guidance.step_arrive',
+        templateKey,
         params: {
           landmark: toNode.name,
           room: toNode.roomNumber || 'Counter',
           distance: edge.distance,
+          floor: toNode.floor,
+          direction: directionWord,
         },
-        floor: toNode.floor,
+        floor: fromNode.floor,
       });
     } else {
       steps.push({

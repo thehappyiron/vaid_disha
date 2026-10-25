@@ -1,3 +1,4 @@
+import hospitalGraph from '../../data/hospitalGraph.json';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -66,17 +67,16 @@ const SYMPTOM_OPTIONS: SymptomOption[] = [
   },
 ];
 
-const HOSPITAL_LANDMARKS = [
-  'Main Entrance & Reception Foyer (Ground Floor)',
-  'Near Lift B & Washrooms (Ground Floor)',
-  'General OPD Waiting Lounge (Floor 1)',
-  'Cardiology Wing Corridor (Floor 2)',
-  'Blood Test Lab Waiting Area (Basement)',
-  'Radiology / X-Ray Corridor (Ground Floor)',
-  'Hospital Canteen / Cafeteria',
-  'Main Hospital Corridor / Ramp',
-  'Outside Hospital Building / Parking Area',
-];
+const HOSPITAL_LANDMARKS = hospitalGraph.nodes
+  .filter((node) => node.isLandmark)
+  .map(
+    (node) =>
+      node.name +
+      (node.roomNumber ? ' · ' + node.roomNumber : '') +
+      ' (Floor ' +
+      node.floor +
+      ')'
+  );
 
 export function EmergencyPage() {
   const navigate = useNavigate();
@@ -101,7 +101,9 @@ export function EmergencyPage() {
 
   const handleAlertStaff = async () => {
     if (selectedSymptoms.length === 0 && !note.trim()) {
-      setErrorMsg('Please select at least one symptom or describe what you feel.');
+      setErrorMsg(
+        'Please select at least one symptom or describe what you feel.'
+      );
       return;
     }
 
@@ -112,18 +114,31 @@ export function EmergencyPage() {
       );
 
       await createEmergencyAlert({
-        symptoms: symptomLabels.length > 0 ? symptomLabels : ['Urgent medical distress'],
+        symptoms:
+          symptomLabels.length > 0
+            ? symptomLabels
+            : ['Urgent medical distress'],
         note: note.trim() || undefined,
         landmark,
         patientToken: tokenParam || undefined,
       });
 
-      setAlertTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      setAlertTime(
+        new Date().toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      );
       setIsAlerted(true);
     } catch (err) {
       console.error('Failed to dispatch emergency alert', err);
       // Fallback display
-      setAlertTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      setAlertTime(
+        new Date().toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      );
       setIsAlerted(true);
     } finally {
       setIsSubmitting(false);
@@ -135,14 +150,22 @@ export function EmergencyPage() {
       <div className="page-container gap-4 sm:gap-6">
         {/* Top Header */}
         <PageHeader
-          title={isAlerted ? 'Staff Have Been Alerted' : 'Urgent Medical Attention'}
+          title={
+            isAlerted ? 'Staff Have Been Alerted' : 'Urgent Medical Attention'
+          }
           showBack={true}
           onBack={() => navigate(-1)}
           actions={
             <StatusBadge
               variant={isAlerted ? 'success' : 'danger'}
               label={isAlerted ? 'RESPONSE ACTIVE' : 'URGENT HELP'}
-              icon={isAlerted ? <ShieldCheck size={16} /> : <ShieldAlert size={16} />}
+              icon={
+                isAlerted ? (
+                  <ShieldCheck size={16} />
+                ) : (
+                  <ShieldAlert size={16} />
+                )
+              }
             />
           }
         />
@@ -169,8 +192,9 @@ export function EmergencyPage() {
                 Take a deep breath. We are here to assist you.
               </h2>
               <p className="text-sm font-semibold text-slate-700 mt-1 leading-relaxed">
-                Select what you are experiencing and where you are seated. Hospital rapid response
-                staff will be notified immediately to reach your exact spot.
+                Select what you are experiencing and where you are seated.
+                Hospital rapid response staff will be notified immediately to
+                reach your exact spot.
               </p>
             </div>
 
@@ -217,7 +241,9 @@ export function EmergencyPage() {
                       ].join(' ')}
                     >
                       {/* Icon */}
-                      <div className={`p-2.5 rounded-xl ${opt.colorClass} shrink-0`}>
+                      <div
+                        className={`p-2.5 rounded-xl ${opt.colorClass} shrink-0`}
+                      >
                         <Icon size={22} />
                       </div>
 
@@ -274,7 +300,8 @@ export function EmergencyPage() {
                 </select>
               </div>
               <span className="text-xs text-[var(--color-text-muted)] font-medium">
-                Choose the nearest landmark sign, lift, or waiting lounge so staff can locate you quickly.
+                Choose the nearest landmark sign, lift, or waiting lounge so
+                staff can locate you quickly.
               </span>
             </div>
 
@@ -332,12 +359,17 @@ export function EmergencyPage() {
               </div>
 
               <h2 className="text-2xl sm:text-3xl font-black text-emerald-950 leading-tight">
-                Staff have been alerted. Please stay where you are or sit nearby.
+                Staff have been alerted. Please stay where you are or sit
+                nearby.
               </h2>
 
               <p className="text-base sm:text-lg font-bold text-emerald-900 max-w-xl leading-relaxed">
-                Hospital rapid response team has received your call and is on their way to{' '}
-                <span className="underline decoration-2 font-extrabold">{landmark}</span>.
+                Hospital rapid response team has received your call and is on
+                their way to{' '}
+                <span className="underline decoration-2 font-extrabold">
+                  {landmark}
+                </span>
+                .
               </p>
 
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-200 text-emerald-950 text-xs font-black tracking-wider uppercase mt-1">
@@ -359,7 +391,8 @@ export function EmergencyPage() {
                     1
                   </div>
                   <p className="leading-snug">
-                    <strong>Sit down or lean against a sturdy wall</strong> to avoid falling or dizziness.
+                    <strong>Sit down or lean against a sturdy wall</strong> to
+                    avoid falling or dizziness.
                   </p>
                 </div>
 
@@ -368,7 +401,8 @@ export function EmergencyPage() {
                     2
                   </div>
                   <p className="leading-snug">
-                    <strong>Keep your phone screen on.</strong> Staff wearing hospital badges will call out or look for you at {landmark}.
+                    <strong>Keep your phone screen on.</strong> Staff wearing
+                    hospital badges will call out or look for you at {landmark}.
                   </p>
                 </div>
 
@@ -377,7 +411,8 @@ export function EmergencyPage() {
                     3
                   </div>
                   <p className="leading-snug">
-                    If anyone is walking by, ask them to stand beside you while the medical team arrives.
+                    If anyone is walking by, ask them to stand beside you while
+                    the medical team arrives.
                   </p>
                 </div>
               </div>

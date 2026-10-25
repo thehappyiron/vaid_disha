@@ -1,3 +1,4 @@
+import { DEPARTMENT_BY_ID } from '../../data/departments';
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
@@ -56,10 +57,11 @@ export function DevStorePage() {
 
   const { sendTestNotification, requestPermission } = useNotifications();
 
-  const [selectedDeptId, setSelectedDeptId] = useState<string>('opd-cardio');
+  const [selectedDeptId, setSelectedDeptId] = useState<string>('opd-general-2');
   const [customWaitMinutes, setCustomWaitMinutes] = useState<number>(15);
   const [customStatusMsg, setCustomStatusMsg] = useState<string>('');
-  const [customStatusCode, setCustomStatusCode] = useState<DepartmentStatusCode>('normal');
+  const [customStatusCode, setCustomStatusCode] =
+    useState<DepartmentStatusCode>('normal');
   const [newPatientName, setNewPatientName] = useState<string>('');
   const [feedbackToast, setFeedbackToast] = useState<string | null>(null);
   const [testEmail, setTestEmail] = useState<string>('loheprasanna@gmail.com');
@@ -71,13 +73,21 @@ export function DevStorePage() {
     setTimeout(() => setFeedbackToast(null), 3000);
   };
 
-  const handleTestEmailEvent = async (event: ActivityEmailEvent | 'email_verification', label: string) => {
+  const handleTestEmailEvent = async (
+    event: ActivityEmailEvent | 'email_verification',
+    label: string
+  ) => {
     setSendingEvent(event);
     setEmailStatus(`Sending "${label}" to ${testEmail}...`);
     try {
       if (event === 'email_verification') {
-        const res = (await sendVerificationEmail(testEmail, 'Prasanna Lohe')) as { id?: string };
-        setEmailStatus(`Verification email dispatched to ${testEmail} via Resend (ID: ${res?.id || 'sent'})`);
+        const res = (await sendVerificationEmail(
+          testEmail,
+          'Prasanna Lohe'
+        )) as { id?: string };
+        setEmailStatus(
+          `Verification email dispatched to ${testEmail} via Resend (ID: ${res?.id || 'sent'})`
+        );
       } else {
         const ok = await sendActivityEmail({
           event,
@@ -88,15 +98,16 @@ export function DevStorePage() {
             patient_name: 'Prasanna Lohe',
             token_no: 'CARD-1042',
             patient_id: 'PAT-88192',
-            department: 'Cardiology OPD',
-            doctor_name: 'Dr. Ramesh Sharma',
-            room: 'Room 204',
-            floor: 'Floor 2',
+            department: 'General Medicine',
+            doctor_name: DEPARTMENT_BY_ID['opd-general-2'].doctorName,
+            room: 'Room 2',
+            floor: 'Floor 1',
             date: 'Today, 25 Oct',
             arrival_time: '10:30 AM',
             eta_start: '10:45 AM',
             eta_end: '11:00 AM',
-            route_text: 'Take Staircase B to Floor 2, turn right to Room 204.',
+            route_text:
+              'Take the lift to the first floor. Room 2 is next to Room 1, opposite Room 6.',
             status_link: `${window.location.origin}/patient/live?token=CARD-1042`,
             cancel_link: `${window.location.origin}/patient/slip/latest?cancel=1`,
             patients_ahead: 5,
@@ -109,28 +120,33 @@ export function DevStorePage() {
             reason_short: 'earlier consultations took longer than planned',
             new_eta: '11:15 AM',
             radius_minutes: '20',
-            old_doctor: 'Dr. Ramesh Sharma',
-            new_doctor: 'Dr. Sunita Kulkarni',
+            old_doctor: DEPARTMENT_BY_ID['opd-general-2'].doctorName,
+            new_doctor: DEPARTMENT_BY_ID['opd-general'].doctorName,
             position: 2,
             reschedule_link: `${window.location.origin}/patient/visit`,
-            old_room: 'Room 204',
-            new_room: 'Room 208',
-            location_name: 'Central Pathology Lab',
+            old_room: 'Room 2',
+            new_room: 'Room 1',
+            location_name: DEPARTMENT_BY_ID['lab-blood'].name,
             new_token: 'LAB-502',
             wait_minutes: 18,
-            pharmacy_counter: 'Counter 3',
+            pharmacy_counter: 'Pharmacy (G-04)',
             feedback_link: `${window.location.origin}/patient/completion?token=CARD-1042`,
             follow_up_date: '31 Oct 2026',
             booking_link: `${window.location.origin}/patient/visit`,
             time: '10:15 AM',
-            action_taken: 'provided immediate medical triage and stabilized your condition',
+            action_taken:
+              'provided immediate medical triage and stabilized your condition',
             emergency_number: '108',
           },
         });
-        setEmailStatus(ok ? `Sent "${label}" successfully via Resend!` : `Sent "${label}"`);
+        setEmailStatus(
+          ok ? `Sent "${label}" successfully via Resend!` : `Sent "${label}"`
+        );
       }
     } catch (err) {
-      setEmailStatus(`Error: ${err instanceof Error ? err.message : String(err)}`);
+      setEmailStatus(
+        `Error: ${err instanceof Error ? err.message : String(err)}`
+      );
     } finally {
       setSendingEvent(null);
     }
@@ -139,7 +155,7 @@ export function DevStorePage() {
   const currentDept = state.departments[selectedDeptId] || {
     departmentId: selectedDeptId,
     departmentName: selectedDeptId,
-    roomNumber: '101',
+    roomNumber: '1',
     floor: 0,
     building: 'Main Block',
     activeDoctorName: 'Doctor on Duty',
@@ -150,7 +166,9 @@ export function DevStorePage() {
     lastUpdated: new Date().toISOString(),
   };
 
-  const deptQueue = state.queue.filter((q) => q.departmentId === selectedDeptId);
+  const deptQueue = state.queue.filter(
+    (q) => q.departmentId === selectedDeptId
+  );
 
   // Quick preset actions
   const handleApplyPresetStatus = async (
@@ -163,7 +181,10 @@ export function DevStorePage() {
   };
 
   const handleAdjustWait = async (delta: number) => {
-    const newWait = Math.max(0, currentDept.estimatedWaitPerPatientMinutes + delta);
+    const newWait = Math.max(
+      0,
+      currentDept.estimatedWaitPerPatientMinutes + delta
+    );
     await setDepartmentWaitTime(selectedDeptId, newWait);
     showToast(`Wait time adjusted to ${newWait} min per patient`);
   };
@@ -176,7 +197,9 @@ export function DevStorePage() {
   const handleCallNext = async () => {
     const res = await callNextPatient(selectedDeptId);
     if (res.nextToken) {
-      showToast(`Called token ${res.nextToken} for ${currentDept.departmentName}`);
+      showToast(
+        `Called token ${res.nextToken} for ${currentDept.departmentName}`
+      );
     } else {
       showToast(`No more waiting patients in ${currentDept.departmentName}`);
     }
@@ -188,8 +211,15 @@ export function DevStorePage() {
   };
 
   const handleAddNewPatient = async () => {
-    const name = newPatientName.trim() || `Walk-in Patient #${Math.floor(100 + Math.random() * 900)}`;
-    const prefix = selectedDeptId === 'opd-cardio' ? 'CARD' : selectedDeptId === 'lab-blood' ? 'LAB' : 'OPD';
+    const name =
+      newPatientName.trim() ||
+      `Walk-in Patient #${Math.floor(100 + Math.random() * 900)}`;
+    const prefix =
+      selectedDeptId === 'opd-general-2'
+        ? 'CARD'
+        : selectedDeptId === 'lab-blood'
+          ? 'LAB'
+          : 'OPD';
     const token = `${prefix}-${Math.floor(1050 + Math.random() * 50)}`;
 
     await ensurePatientInQueue({
@@ -203,12 +233,15 @@ export function DevStorePage() {
     showToast(`Added ${token} (${name}) to queue`);
   };
 
-  const handleBroadcastAlert = async (type: 'emergency' | 'delay' | 'announcement') => {
+  const handleBroadcastAlert = async (
+    type: 'emergency' | 'delay' | 'announcement'
+  ) => {
     if (type === 'emergency') {
       await publishLiveAlert({
         type: 'emergency',
         title: 'Emergency Trauma Code Blue',
-        message: 'Critical emergency incoming. Priority triage enabled for ER Bay 1.',
+        message:
+          'Critical emergency incoming. Priority triage enabled for ER Bay 1.',
         departmentId: selectedDeptId,
         active: true,
       });
@@ -217,7 +250,8 @@ export function DevStorePage() {
       await publishLiveAlert({
         type: 'delay',
         title: 'Department Operational Delay Notice',
-        message: 'Consultation schedule running with extended wait times due to complex cases.',
+        message:
+          'Consultation schedule running with extended wait times due to complex cases.',
         departmentId: selectedDeptId,
         active: true,
       });
@@ -234,7 +268,11 @@ export function DevStorePage() {
   };
 
   const handleReset = async () => {
-    if (window.confirm('Reset all queues and department live statuses back to default mock data?')) {
+    if (
+      window.confirm(
+        'Reset all queues and department live statuses back to default mock data?'
+      )
+    ) {
       await resetLiveStore();
       showToast('Live store reset to default data');
     }
@@ -305,10 +343,12 @@ export function DevStorePage() {
             </div>
           </div>
           <p className="text-sm font-semibold text-[var(--color-primary-950)] leading-relaxed">
-            <strong>How to test real-time sync:</strong> Keep this tab open on <code>/dev/store</code>.
-            Open <code>/patient/slip</code> or <code>/patient/live</code> in another browser tab.
-            Click any button below to adjust wait times, call the next patient, or change doctor statuses.
-            Watch the other tab update instantly via <strong>BroadcastChannel</strong> without page reload!
+            <strong>How to test real-time sync:</strong> Keep this tab open on{' '}
+            <code>/dev/store</code>. Open <code>/patient/slip</code> or{' '}
+            <code>/patient/live</code> in another browser tab. Click any button
+            below to adjust wait times, call the next patient, or change doctor
+            statuses. Watch the other tab update instantly via{' '}
+            <strong>BroadcastChannel</strong> without page reload!
           </p>
         </div>
 
@@ -344,9 +384,15 @@ export function DevStorePage() {
         <div className="card p-5 rounded-2xl border-2 border-[var(--color-border)] bg-[var(--color-surface)] flex flex-col gap-3 shadow-2xs">
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-2.5">
-              <Building2 size={20} className="text-[var(--color-primary-600)]" />
+              <Building2
+                size={20}
+                className="text-[var(--color-primary-600)]"
+              />
               <h2 className="text-lg font-black text-[var(--color-text)]">
-                {currentDept.departmentName}{currentDept.roomNumber ? ` (Room ${currentDept.roomNumber})` : ''}
+                {currentDept.departmentName}
+                {currentDept.roomNumber
+                  ? ` (Room ${currentDept.roomNumber})`
+                  : ''}
               </h2>
             </div>
             <StatusBadge
@@ -367,34 +413,51 @@ export function DevStorePage() {
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 text-xs">
             <div className="p-2.5 rounded-xl bg-[var(--color-surface-2)]">
-              <span className="font-bold text-[var(--color-text-muted)] block">Now Serving Token</span>
+              <span className="font-bold text-[var(--color-text-muted)] block">
+                Now Serving Token
+              </span>
               <span className="font-mono font-black text-base text-[var(--color-primary-600)]">
                 {currentDept.currentToken || 'None'}
               </span>
             </div>
             <div className="p-2.5 rounded-xl bg-[var(--color-surface-2)]">
-              <span className="font-bold text-[var(--color-text-muted)] block">Wait Per Patient</span>
+              <span className="font-bold text-[var(--color-text-muted)] block">
+                Wait Per Patient
+              </span>
               <span className="font-black text-base text-[var(--color-text)]">
                 ~{currentDept.estimatedWaitPerPatientMinutes} min
               </span>
             </div>
             <div className="p-2.5 rounded-xl bg-[var(--color-surface-2)]">
-              <span className="font-bold text-[var(--color-text-muted)] block">Doctor on Duty</span>
+              <span className="font-bold text-[var(--color-text-muted)] block">
+                Doctor on Duty
+              </span>
               <span className="font-extrabold text-sm text-[var(--color-text)] truncate block">
                 {currentDept.activeDoctorName}
               </span>
             </div>
             <div className="p-2.5 rounded-xl bg-[var(--color-surface-2)]">
-              <span className="font-bold text-[var(--color-text-muted)] block">Queue Length</span>
+              <span className="font-bold text-[var(--color-text-muted)] block">
+                Queue Length
+              </span>
               <span className="font-black text-base text-[var(--color-text)]">
-                {deptQueue.filter((q) => q.status === 'waiting' || q.status === 'turn_soon').length} waiting
+                {
+                  deptQueue.filter(
+                    (q) => q.status === 'waiting' || q.status === 'turn_soon'
+                  ).length
+                }{' '}
+                waiting
               </span>
             </div>
           </div>
 
           <div className="p-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-border)] text-xs font-semibold">
-            <span className="text-[var(--color-text-muted)] font-bold">Current Broadcast Message: </span>
-            <span className="text-[var(--color-text)] font-extrabold">"{currentDept.statusMessage}"</span>
+            <span className="text-[var(--color-text-muted)] font-bold">
+              Current Broadcast Message:{' '}
+            </span>
+            <span className="text-[var(--color-text)] font-extrabold">
+              "{currentDept.statusMessage}"
+            </span>
           </div>
         </div>
 
@@ -408,22 +471,46 @@ export function DevStorePage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" size="sm" onClick={() => handleAdjustWait(-5)}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => handleAdjustWait(-5)}
+            >
               -5 min
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => handleAdjustWait(5)}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => handleAdjustWait(5)}
+            >
               +5 min
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => handleAdjustWait(15)}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => handleAdjustWait(15)}
+            >
               +15 min (Delay)
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => handleSetExactWait(0)}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => handleSetExactWait(0)}
+            >
               Set 0 min (Immediate)
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => handleSetExactWait(10)}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => handleSetExactWait(10)}
+            >
               Set 10 min
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => handleSetExactWait(25)}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => handleSetExactWait(25)}
+            >
               Set 25 min
             </Button>
           </div>
@@ -462,13 +549,19 @@ export function DevStorePage() {
             {/* Busy: Doctor with another patient */}
             <button
               type="button"
-              onClick={() => handleApplyPresetStatus('Doctor with another patient', 'busy')}
+              onClick={() =>
+                handleApplyPresetStatus('Doctor with another patient', 'busy')
+              }
               className="p-3 rounded-xl border border-indigo-300 bg-indigo-50/80 hover:bg-indigo-100 text-indigo-950 font-bold text-xs flex items-center gap-2.5 text-left transition-colors"
             >
               <Stethoscope size={18} className="text-indigo-700 shrink-0" />
               <div>
-                <span className="block font-black">"Doctor with another patient"</span>
-                <span className="text-[11px] opacity-80">Sets status code to Busy</span>
+                <span className="block font-black">
+                  "Doctor with another patient"
+                </span>
+                <span className="text-[11px] opacity-80">
+                  Sets status code to Busy
+                </span>
               </div>
             </button>
 
@@ -476,16 +569,24 @@ export function DevStorePage() {
             <button
               type="button"
               onClick={() =>
-                handleApplyPresetStatus('Doctor on break until 3:15 PM', 'break', {
-                  breakUntil: '3:15 PM',
-                })
+                handleApplyPresetStatus(
+                  'Doctor on break until 3:15 PM',
+                  'break',
+                  {
+                    breakUntil: '3:15 PM',
+                  }
+                )
               }
               className="p-3 rounded-xl border border-amber-300 bg-amber-50/80 hover:bg-amber-100 text-amber-950 font-bold text-xs flex items-center gap-2.5 text-left transition-colors"
             >
               <Coffee size={18} className="text-amber-700 shrink-0" />
               <div>
-                <span className="block font-black">"Doctor on break until 3:15 PM"</span>
-                <span className="text-[11px] opacity-80">Sets status code to Break</span>
+                <span className="block font-black">
+                  "Doctor on break until 3:15 PM"
+                </span>
+                <span className="text-[11px] opacity-80">
+                  Sets status code to Break
+                </span>
               </div>
             </button>
 
@@ -501,21 +602,34 @@ export function DevStorePage() {
             >
               <AlertTriangle size={18} className="text-orange-700 shrink-0" />
               <div>
-                <span className="block font-black">"Lab delayed by 20 min"</span>
-                <span className="text-[11px] opacity-80">Sets status code to Delayed (+20m wait)</span>
+                <span className="block font-black">
+                  "Lab delayed by 20 min"
+                </span>
+                <span className="text-[11px] opacity-80">
+                  Sets status code to Delayed (+20m wait)
+                </span>
               </div>
             </button>
 
             {/* Normal: Consultations running on time */}
             <button
               type="button"
-              onClick={() => handleApplyPresetStatus('Consultations running on time', 'normal')}
+              onClick={() =>
+                handleApplyPresetStatus(
+                  'Consultations running on time',
+                  'normal'
+                )
+              }
               className="p-3 rounded-xl border border-emerald-300 bg-emerald-50/80 hover:bg-emerald-100 text-emerald-950 font-bold text-xs flex items-center gap-2.5 text-left transition-colors"
             >
               <UserCheck size={18} className="text-emerald-700 shrink-0" />
               <div>
-                <span className="block font-black">"Consultations running on time"</span>
-                <span className="text-[11px] opacity-80">Sets status code to Normal</span>
+                <span className="block font-black">
+                  "Consultations running on time"
+                </span>
+                <span className="text-[11px] opacity-80">
+                  Sets status code to Normal
+                </span>
               </div>
             </button>
           </div>
@@ -531,7 +645,9 @@ export function DevStorePage() {
             />
             <select
               value={customStatusCode}
-              onChange={(e) => setCustomStatusCode(e.target.value as DepartmentStatusCode)}
+              onChange={(e) =>
+                setCustomStatusCode(e.target.value as DepartmentStatusCode)
+              }
               className="input input-sm text-xs font-bold"
             >
               <option value="normal">Normal</option>
@@ -609,7 +725,9 @@ export function DevStorePage() {
 
           {/* Current tokens in this department */}
           <div className="flex flex-col gap-2 pt-2 border-t border-[var(--color-border)]">
-            <span className="text-xs font-bold text-[var(--color-text-muted)]">Active Tokens in Queue:</span>
+            <span className="text-xs font-bold text-[var(--color-text-muted)]">
+              Active Tokens in Queue:
+            </span>
             <div className="flex flex-wrap gap-2">
               {deptQueue.map((entry) => (
                 <div
@@ -617,14 +735,18 @@ export function DevStorePage() {
                   className="px-3 py-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] text-xs flex items-center gap-2"
                 >
                   <span className="font-mono font-black">{entry.token}</span>
-                  <span className="font-semibold text-[var(--color-text-muted)]">({entry.patientName})</span>
+                  <span className="font-semibold text-[var(--color-text-muted)]">
+                    ({entry.patientName})
+                  </span>
                   <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-white">
                     {entry.status}
                   </span>
                   <button
                     type="button"
                     title="Advance to In Consultation"
-                    onClick={() => handleSetPatientStatus(entry.token, 'in_progress')}
+                    onClick={() =>
+                      handleSetPatientStatus(entry.token, 'in_progress')
+                    }
                     className="text-emerald-600 hover:text-emerald-800 font-bold ml-1 inline-flex items-center gap-1"
                   >
                     <Play size={11} aria-hidden="true" />
@@ -698,7 +820,9 @@ export function DevStorePage() {
           {/* Active alerts list */}
           {state.alerts.filter((a) => a.active).length > 0 && (
             <div className="flex flex-col gap-2 pt-2 border-t border-[var(--color-border)]">
-              <span className="text-xs font-bold text-[var(--color-text-muted)]">Active Broadcasts:</span>
+              <span className="text-xs font-bold text-[var(--color-text-muted)]">
+                Active Broadcasts:
+              </span>
               {state.alerts
                 .filter((a) => a.active)
                 .map((alert) => (
@@ -707,8 +831,11 @@ export function DevStorePage() {
                     className="p-2.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 text-xs flex items-center justify-between gap-2"
                   >
                     <div>
-                      <span className="font-black mr-2">[{alert.type.toUpperCase()}]</span>
-                      <span className="font-bold">{alert.title}:</span> {alert.message}
+                      <span className="font-black mr-2">
+                        [{alert.type.toUpperCase()}]
+                      </span>
+                      <span className="font-bold">{alert.title}:</span>{' '}
+                      {alert.message}
                     </div>
                     <button
                       type="button"
@@ -747,7 +874,8 @@ export function DevStorePage() {
           </div>
 
           <p className="text-xs font-medium text-[var(--color-text-muted)]">
-            Click any button below to emit real-time in-page toast banners, browser notifications, and update the bell badge across open tabs:
+            Click any button below to emit real-time in-page toast banners,
+            browser notifications, and update the bell badge across open tabs:
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
@@ -760,10 +888,17 @@ export function DevStorePage() {
               }}
               className="p-3 rounded-xl border border-blue-300 bg-blue-50/80 hover:bg-blue-100 text-blue-950 font-bold text-xs flex items-center gap-2.5 text-left transition-colors"
             >
-              <BellRing size={18} className="text-blue-700 shrink-0 animate-bounce" />
+              <BellRing
+                size={18}
+                className="text-blue-700 shrink-0 animate-bounce"
+              />
               <div>
-                <span className="block font-black">Trigger: "Your turn is coming"</span>
-                <span className="text-[11px] opacity-80">Emits toast banner & lock-screen push</span>
+                <span className="block font-black">
+                  Trigger: "Your turn is coming"
+                </span>
+                <span className="text-[11px] opacity-80">
+                  Emits toast banner & lock-screen push
+                </span>
               </div>
             </button>
 
@@ -772,14 +907,20 @@ export function DevStorePage() {
               type="button"
               onClick={() => {
                 sendTestNotification('completed');
-                showToast('Triggered "Your consultation is complete" notification!');
+                showToast(
+                  'Triggered "Your consultation is complete" notification!'
+                );
               }}
               className="p-3 rounded-xl border border-emerald-300 bg-emerald-50/80 hover:bg-emerald-100 text-emerald-950 font-bold text-xs flex items-center gap-2.5 text-left transition-colors"
             >
               <UserCheck size={18} className="text-emerald-700 shrink-0" />
               <div>
-                <span className="block font-black">Trigger: "Your consultation is complete"</span>
-                <span className="text-[11px] opacity-80">Leads to /patient/completion screen</span>
+                <span className="block font-black">
+                  Trigger: "Your consultation is complete"
+                </span>
+                <span className="text-[11px] opacity-80">
+                  Leads to /patient/completion screen
+                </span>
               </div>
             </button>
 
@@ -794,8 +935,12 @@ export function DevStorePage() {
             >
               <FileText size={18} className="text-indigo-700 shrink-0" />
               <div>
-                <span className="block font-black">Trigger: "Your lab report is ready"</span>
-                <span className="text-[11px] opacity-80">Notification with link to view report</span>
+                <span className="block font-black">
+                  Trigger: "Your lab report is ready"
+                </span>
+                <span className="text-[11px] opacity-80">
+                  Notification with link to view report
+                </span>
               </div>
             </button>
 
@@ -804,7 +949,10 @@ export function DevStorePage() {
               type="button"
               onClick={async () => {
                 await createEmergencyAlert({
-                  symptoms: ['Chest pain or heavy tightness', 'Difficulty breathing'],
+                  symptoms: [
+                    'Chest pain or heavy tightness',
+                    'Difficulty breathing',
+                  ],
                   landmark: 'Near Lift B & Washrooms (Ground Floor)',
                   patientToken: 'CARD-1042',
                   patientName: 'Ramesh Sharma',
@@ -814,10 +962,17 @@ export function DevStorePage() {
               }}
               className="p-3 rounded-xl border border-red-400 bg-red-50/80 hover:bg-red-100 text-red-950 font-bold text-xs flex items-center gap-2.5 text-left transition-colors"
             >
-              <TriangleAlert size={18} className="text-red-600 shrink-0 animate-pulse" />
+              <TriangleAlert
+                size={18}
+                className="text-red-600 shrink-0 animate-pulse"
+              />
               <div>
-                <span className="block font-black">Simulate Emergency Alert (Lift B)</span>
-                <span className="text-[11px] opacity-80">Writes to liveStore.emergencyRequests</span>
+                <span className="block font-black">
+                  Simulate Emergency Alert (Lift B)
+                </span>
+                <span className="text-[11px] opacity-80">
+                  Writes to liveStore.emergencyRequests
+                </span>
               </div>
             </button>
           </div>
@@ -850,7 +1005,8 @@ export function DevStorePage() {
                   Resend Email Service Testbench (18 Activity Events)
                 </h2>
                 <p className="text-xs text-[var(--color-text-muted)]">
-                  Test and trigger any real hospital activity email directly with Resend API
+                  Test and trigger any real hospital activity email directly
+                  with Resend API
                 </p>
               </div>
             </div>
@@ -874,7 +1030,13 @@ export function DevStorePage() {
           {emailStatus && (
             <div className="p-3 bg-teal-50 border border-teal-300 text-teal-950 rounded-xl text-xs font-bold animate-fadeIn flex items-center justify-between">
               <span>{emailStatus}</span>
-              {sendingEvent && <Loader2 size={16} className="animate-spin text-teal-800 shrink-0" aria-hidden="true" />}
+              {sendingEvent && (
+                <Loader2
+                  size={16}
+                  className="animate-spin text-teal-800 shrink-0"
+                  aria-hidden="true"
+                />
+              )}
             </div>
           )}
 
@@ -890,7 +1052,12 @@ export function DevStorePage() {
                   variant="secondary"
                   size="sm"
                   loading={sendingEvent === 'email_verification'}
-                  onClick={() => handleTestEmailEvent('email_verification', '1. Email verification (OTP)')}
+                  onClick={() =>
+                    handleTestEmailEvent(
+                      'email_verification',
+                      '1. Email verification (OTP)'
+                    )
+                  }
                   className="text-xs font-bold text-left justify-start"
                 >
                   1. Email verification (OTP: 6 digits)
@@ -899,7 +1066,12 @@ export function DevStorePage() {
                   variant="secondary"
                   size="sm"
                   loading={sendingEvent === 'registration_complete'}
-                  onClick={() => handleTestEmailEvent('registration_complete', '2. Registration complete')}
+                  onClick={() =>
+                    handleTestEmailEvent(
+                      'registration_complete',
+                      '2. Registration complete'
+                    )
+                  }
                   className="text-xs font-bold text-left justify-start"
                 >
                   2. Registration complete (Patient ID)
@@ -917,7 +1089,12 @@ export function DevStorePage() {
                   variant="secondary"
                   size="sm"
                   loading={sendingEvent === 'opd_slip_confirmation'}
-                  onClick={() => handleTestEmailEvent('opd_slip_confirmation', '3. OPD slip confirmation')}
+                  onClick={() =>
+                    handleTestEmailEvent(
+                      'opd_slip_confirmation',
+                      '3. OPD slip confirmation'
+                    )
+                  }
                   className="text-xs font-bold text-left justify-start"
                 >
                   3. OPD slip confirmation
@@ -926,7 +1103,9 @@ export function DevStorePage() {
                   variant="secondary"
                   size="sm"
                   loading={sendingEvent === 'visit_reminder'}
-                  onClick={() => handleTestEmailEvent('visit_reminder', '4. Visit reminder')}
+                  onClick={() =>
+                    handleTestEmailEvent('visit_reminder', '4. Visit reminder')
+                  }
                   className="text-xs font-bold text-left justify-start"
                 >
                   4. Visit reminder (2h / evening before)
@@ -944,7 +1123,12 @@ export function DevStorePage() {
                   variant="secondary"
                   size="sm"
                   loading={sendingEvent === 'turn_approaching'}
-                  onClick={() => handleTestEmailEvent('turn_approaching', '5. Turn approaching (5 ahead)')}
+                  onClick={() =>
+                    handleTestEmailEvent(
+                      'turn_approaching',
+                      '5. Turn approaching (5 ahead)'
+                    )
+                  }
                   className="text-xs font-bold text-left justify-start"
                 >
                   5. Turn approaching (5 ahead)
@@ -953,7 +1137,9 @@ export function DevStorePage() {
                   variant="secondary"
                   size="sm"
                   loading={sendingEvent === 'turn_now'}
-                  onClick={() => handleTestEmailEvent('turn_now', '6. Your turn now')}
+                  onClick={() =>
+                    handleTestEmailEvent('turn_now', '6. Your turn now')
+                  }
                   className="text-xs font-bold text-left justify-start"
                 >
                   6. Your turn now (Called)
@@ -962,7 +1148,9 @@ export function DevStorePage() {
                   variant="secondary"
                   size="sm"
                   loading={sendingEvent === 'missed_turn'}
-                  onClick={() => handleTestEmailEvent('missed_turn', '7. Missed turn')}
+                  onClick={() =>
+                    handleTestEmailEvent('missed_turn', '7. Missed turn')
+                  }
                   className="text-xs font-bold text-left justify-start"
                 >
                   7. Missed turn (Grace window)
@@ -971,7 +1159,12 @@ export function DevStorePage() {
                   variant="secondary"
                   size="sm"
                   loading={sendingEvent === 'priority_applied'}
-                  onClick={() => handleTestEmailEvent('priority_applied', '8. Priority applied')}
+                  onClick={() =>
+                    handleTestEmailEvent(
+                      'priority_applied',
+                      '8. Priority applied'
+                    )
+                  }
                   className="text-xs font-bold text-left justify-start"
                 >
                   8. Priority applied
@@ -989,7 +1182,12 @@ export function DevStorePage() {
                   variant="secondary"
                   size="sm"
                   loading={sendingEvent === 'delay'}
-                  onClick={() => handleTestEmailEvent('delay', '9. Delay in department (20+ min)')}
+                  onClick={() =>
+                    handleTestEmailEvent(
+                      'delay',
+                      '9. Delay in department (20+ min)'
+                    )
+                  }
                   className="text-xs font-bold text-left justify-start"
                 >
                   9. Delay (20+ min)
@@ -998,7 +1196,12 @@ export function DevStorePage() {
                   variant="secondary"
                   size="sm"
                   loading={sendingEvent === 'doctor_unavailable'}
-                  onClick={() => handleTestEmailEvent('doctor_unavailable', '10. Doctor unavailable')}
+                  onClick={() =>
+                    handleTestEmailEvent(
+                      'doctor_unavailable',
+                      '10. Doctor unavailable'
+                    )
+                  }
                   className="text-xs font-bold text-left justify-start"
                 >
                   10. Change of doctor
@@ -1007,7 +1210,9 @@ export function DevStorePage() {
                   variant="secondary"
                   size="sm"
                   loading={sendingEvent === 'room_change'}
-                  onClick={() => handleTestEmailEvent('room_change', '11. Room change')}
+                  onClick={() =>
+                    handleTestEmailEvent('room_change', '11. Room change')
+                  }
                   className="text-xs font-bold text-left justify-start"
                 >
                   11. Room change
@@ -1025,7 +1230,12 @@ export function DevStorePage() {
                   variant="secondary"
                   size="sm"
                   loading={sendingEvent === 'next_step'}
-                  onClick={() => handleTestEmailEvent('next_step', '12. Next step (Lab/X-ray/Pharmacy)')}
+                  onClick={() =>
+                    handleTestEmailEvent(
+                      'next_step',
+                      '12. Next step (Lab/X-ray/Pharmacy)'
+                    )
+                  }
                   className="text-xs font-bold text-left justify-start"
                 >
                   12. Next step (Lab / Pharmacy)
@@ -1034,7 +1244,9 @@ export function DevStorePage() {
                   variant="secondary"
                   size="sm"
                   loading={sendingEvent === 'reports_ready'}
-                  onClick={() => handleTestEmailEvent('reports_ready', '13. Reports ready')}
+                  onClick={() =>
+                    handleTestEmailEvent('reports_ready', '13. Reports ready')
+                  }
                   className="text-xs font-bold text-left justify-start"
                 >
                   13. Reports ready (Return lane)
@@ -1052,7 +1264,12 @@ export function DevStorePage() {
                   variant="secondary"
                   size="sm"
                   loading={sendingEvent === 'visit_completed'}
-                  onClick={() => handleTestEmailEvent('visit_completed', '14. Visit completed')}
+                  onClick={() =>
+                    handleTestEmailEvent(
+                      'visit_completed',
+                      '14. Visit completed'
+                    )
+                  }
                   className="text-xs font-bold text-left justify-start"
                 >
                   14. Visit completed (Feedback & Pharmacy)
@@ -1061,7 +1278,12 @@ export function DevStorePage() {
                   variant="secondary"
                   size="sm"
                   loading={sendingEvent === 'follow_up_reminder'}
-                  onClick={() => handleTestEmailEvent('follow_up_reminder', '15. Follow-up reminder')}
+                  onClick={() =>
+                    handleTestEmailEvent(
+                      'follow_up_reminder',
+                      '15. Follow-up reminder'
+                    )
+                  }
                   className="text-xs font-bold text-left justify-start"
                 >
                   15. Follow-up reminder
@@ -1079,7 +1301,12 @@ export function DevStorePage() {
                   variant="secondary"
                   size="sm"
                   loading={sendingEvent === 'cancellation_confirmed'}
-                  onClick={() => handleTestEmailEvent('cancellation_confirmed', '16. Cancellation confirmed')}
+                  onClick={() =>
+                    handleTestEmailEvent(
+                      'cancellation_confirmed',
+                      '16. Cancellation confirmed'
+                    )
+                  }
                   className="text-xs font-bold text-left justify-start"
                 >
                   16. Slip cancelled
@@ -1088,7 +1315,12 @@ export function DevStorePage() {
                   variant="secondary"
                   size="sm"
                   loading={sendingEvent === 'token_shared'}
-                  onClick={() => handleTestEmailEvent('token_shared', '17. Token shared with attendant')}
+                  onClick={() =>
+                    handleTestEmailEvent(
+                      'token_shared',
+                      '17. Token shared with attendant'
+                    )
+                  }
                   className="text-xs font-bold text-left justify-start"
                 >
                   17. Token shared with attendant
@@ -1097,7 +1329,12 @@ export function DevStorePage() {
                   variant="secondary"
                   size="sm"
                   loading={sendingEvent === 'urgent_visit_record'}
-                  onClick={() => handleTestEmailEvent('urgent_visit_record', '18. Urgent visit record')}
+                  onClick={() =>
+                    handleTestEmailEvent(
+                      'urgent_visit_record',
+                      '18. Urgent visit record'
+                    )
+                  }
                   className="text-xs font-bold text-left justify-start"
                 >
                   18. Urgent visit record

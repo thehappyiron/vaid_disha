@@ -4,7 +4,7 @@ export const HOSPITAL_EMAIL_DEFAULTS = {
   app_name: 'Vaid Disha',
   counter_location: 'Main OPD Registration Counter, Ground Floor',
   emergency_number: '108',
-  pharmacy_counter: 'Pharmacy Counter 3',
+  pharmacy_counter: 'Pharmacy (G-04)',
   grace_minutes: '15',
   radius_minutes: '20',
 };
@@ -100,7 +100,8 @@ function writeJson(key: string, value: unknown) {
 
 export function formatFloor(floor?: number | string | null): string {
   if (floor === 0 || floor === '0') return 'Ground Floor';
-  if (floor === undefined || floor === null || floor === '') return 'Ground Floor';
+  if (floor === undefined || floor === null || floor === '')
+    return 'Ground Floor';
   const asNumber = Number(floor);
   if (!Number.isNaN(asNumber) && asNumber === 0) return 'Ground Floor';
   return `Floor ${floor}`;
@@ -140,7 +141,10 @@ export function rememberTokenContact(contact: TokenContact) {
     token: key,
     email: contact.email.trim().toLowerCase(),
     attendantEmails: Array.from(
-      new Set([...(previous.attendantEmails || []), ...(contact.attendantEmails || [])])
+      new Set([
+        ...(previous.attendantEmails || []),
+        ...(contact.attendantEmails || []),
+      ])
     ),
   };
   writeJson(CONTACTS_KEY, all);
@@ -166,7 +170,8 @@ export function addAttendantEmail(token: string, email: string) {
 function recipientsForToken(token?: string | null, extraTo?: string): string[] {
   const contact = getTokenContact(token);
   const emails = new Set<string>();
-  if (extraTo && isValidEmail(extraTo)) emails.add(extraTo.trim().toLowerCase());
+  if (extraTo && isValidEmail(extraTo))
+    emails.add(extraTo.trim().toLowerCase());
   if (contact?.email && isValidEmail(contact.email)) emails.add(contact.email);
   for (const attendant of contact?.attendantEmails || []) {
     if (isValidEmail(attendant)) emails.add(attendant);
@@ -202,7 +207,10 @@ async function postJson(path: string, body: unknown) {
   return data;
 }
 
-export async function sendVerificationEmail(email: string, patientName?: string) {
+export async function sendVerificationEmail(
+  email: string,
+  patientName?: string
+) {
   if (!isValidEmail(email)) {
     throw new Error('Please enter a valid email address.');
   }
@@ -228,7 +236,8 @@ export async function sendActivityEmail(options: {
   includeAttendants?: boolean;
 }): Promise<boolean> {
   const { event, token, includeAttendants = true } = options;
-  const idempotencyKey = options.idempotencyKey || `${event}:${token || options.to || ''}`;
+  const idempotencyKey =
+    options.idempotencyKey || `${event}:${token || options.to || ''}`;
   if (wasSent(idempotencyKey)) return false;
 
   const vars: Record<string, string> = { ...HOSPITAL_EMAIL_DEFAULTS };
@@ -270,18 +279,25 @@ export async function sendActivityEmail(options: {
     markSent(idempotencyKey);
     return true;
   } catch (error) {
-    console.warn('Activity email failed:', error instanceof Error ? error.message : error);
+    console.warn(
+      'Activity email failed:',
+      error instanceof Error ? error.message : error
+    );
     return false;
   }
 }
 
-export function scheduleActivityEmail(job: Omit<ScheduledEmail, 'id'> & { id?: string }) {
+export function scheduleActivityEmail(
+  job: Omit<ScheduledEmail, 'id'> & { id?: string }
+) {
   const reminders = readJson<ScheduledEmail[]>(REMINDERS_KEY, []);
   const next: ScheduledEmail = {
     ...job,
     id: job.id || `job-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
   };
-  const exists = reminders.some((item) => item.idempotencyKey === next.idempotencyKey);
+  const exists = reminders.some(
+    (item) => item.idempotencyKey === next.idempotencyKey
+  );
   if (exists) return;
   reminders.push(next);
   writeJson(REMINDERS_KEY, reminders);
@@ -323,7 +339,10 @@ export function scheduleVisitReminders(input: {
   expectedAt: Date;
   slipId?: string;
 }) {
-  const to = input.email || getTokenContact(input.token)?.email || getLoggedInPatientEmail();
+  const to =
+    input.email ||
+    getTokenContact(input.token)?.email ||
+    getLoggedInPatientEmail();
   if (!to) return;
 
   const arrival = new Date(input.expectedAt.getTime() - 15 * 60 * 1000);
@@ -532,9 +551,13 @@ export function notifyTurnApproachingAndNow(
   dept: DeptMailContext
 ) {
   for (const entry of next) {
-    const before = previous.find((item) => item.token.toUpperCase() === entry.token.toUpperCase());
+    const before = previous.find(
+      (item) => item.token.toUpperCase() === entry.token.toUpperCase()
+    );
     const peopleAhead = Math.max(0, entry.position - 1);
-    const prevAhead = before ? Math.max(0, before.position - 1) : Number.POSITIVE_INFINITY;
+    const prevAhead = before
+      ? Math.max(0, before.position - 1)
+      : Number.POSITIVE_INFINITY;
     const contactEmail = entry.email;
     if (contactEmail) {
       rememberTokenContact({
@@ -585,12 +608,20 @@ export function notifyTurnApproachingAndNow(
   }
 }
 
-export function notifyDepartmentDelay(entries: QueueMailEntry[], dept: DeptMailContext) {
+export function notifyDepartmentDelay(
+  entries: QueueMailEntry[],
+  dept: DeptMailContext
+) {
   const delayMinutes = dept.delayMinutes || 0;
   if (delayMinutes < DELAY_EMAIL_MINUTES) return;
   const newEta = formatClock(new Date(Date.now() + delayMinutes * 60 * 1000));
   for (const entry of entries) {
-    if (entry.status === 'completed' || entry.status === 'cancelled' || entry.status === 'in_progress') continue;
+    if (
+      entry.status === 'completed' ||
+      entry.status === 'cancelled' ||
+      entry.status === 'in_progress'
+    )
+      continue;
     void sendActivityEmail({
       event: 'delay',
       token: entry.token,
@@ -607,7 +638,11 @@ export function notifyDepartmentDelay(entries: QueueMailEntry[], dept: DeptMailC
   }
 }
 
-export function notifyDoctorChange(entries: QueueMailEntry[], dept: DeptMailContext, oldDoctor: string) {
+export function notifyDoctorChange(
+  entries: QueueMailEntry[],
+  dept: DeptMailContext,
+  oldDoctor: string
+) {
   if (!oldDoctor || oldDoctor === dept.doctorName) return;
   for (const entry of entries) {
     if (entry.status === 'completed' || entry.status === 'cancelled') continue;
@@ -628,7 +663,11 @@ export function notifyDoctorChange(entries: QueueMailEntry[], dept: DeptMailCont
   }
 }
 
-export function notifyRoomChange(entries: QueueMailEntry[], dept: DeptMailContext, oldRoom: string) {
+export function notifyRoomChange(
+  entries: QueueMailEntry[],
+  dept: DeptMailContext,
+  oldRoom: string
+) {
   if (!oldRoom || oldRoom === dept.roomNumber) return;
   for (const entry of entries) {
     if (entry.status === 'completed' || entry.status === 'cancelled') continue;
@@ -648,8 +687,13 @@ export function notifyRoomChange(entries: QueueMailEntry[], dept: DeptMailContex
   }
 }
 
-export function notifyVisitCompleted(entry: QueueMailEntry, dept: DeptMailContext) {
-  const created = entry.createdAt ? new Date(entry.createdAt).getTime() : Date.now() - 20 * 60 * 1000;
+export function notifyVisitCompleted(
+  entry: QueueMailEntry,
+  dept: DeptMailContext
+) {
+  const created = entry.createdAt
+    ? new Date(entry.createdAt).getTime()
+    : Date.now() - 20 * 60 * 1000;
   const waitMinutes = Math.max(1, Math.round((Date.now() - created) / 60000));
   void sendActivityEmail({
     event: 'visit_completed',
@@ -675,14 +719,20 @@ export function notifyVisitCompleted(entry: QueueMailEntry, dept: DeptMailContex
   });
 }
 
-export function notifyMissedTurn(entry: QueueMailEntry, dept: DeptMailContext, calledAt?: string) {
+export function notifyMissedTurn(
+  entry: QueueMailEntry,
+  dept: DeptMailContext,
+  calledAt?: string
+) {
   void sendActivityEmail({
     event: 'missed_turn',
     token: entry.token,
     vars: {
       patient_name: entry.patientName,
       token_no: entry.token,
-      called_time: calledAt ? formatClock(new Date(calledAt)) : formatClock(new Date()),
+      called_time: calledAt
+        ? formatClock(new Date(calledAt))
+        : formatClock(new Date()),
       room: roomLabel(entry.roomNumber || dept.roomNumber),
     },
     idempotencyKey: `missed_turn:${entry.token}:${calledAt || 'now'}`,
@@ -703,7 +753,13 @@ export function notifyPriorityApplied(entry: QueueMailEntry) {
   });
 }
 
-export function notifyNextStep(entry: QueueMailEntry, locationName: string, floor: string, doctorName: string, minutes: number) {
+export function notifyNextStep(
+  entry: QueueMailEntry,
+  locationName: string,
+  floor: string,
+  doctorName: string,
+  minutes: number
+) {
   const newToken = `${entry.token}-N`;
   void sendActivityEmail({
     event: 'next_step',
@@ -721,7 +777,14 @@ export function notifyNextStep(entry: QueueMailEntry, locationName: string, floo
   });
 }
 
-export function notifyReportsReady(entry: { token: string; patientName: string; doctorName: string; room: string; floor: string; minutes?: number }) {
+export function notifyReportsReady(entry: {
+  token: string;
+  patientName: string;
+  doctorName: string;
+  room: string;
+  floor: string;
+  minutes?: number;
+}) {
   void sendActivityEmail({
     event: 'reports_ready',
     token: entry.token,
@@ -737,7 +800,12 @@ export function notifyReportsReady(entry: { token: string; patientName: string; 
   });
 }
 
-export function notifyUrgentClosed(entry: { token?: string; patientName?: string; actionTaken: string; time?: string }) {
+export function notifyUrgentClosed(entry: {
+  token?: string;
+  patientName?: string;
+  actionTaken: string;
+  time?: string;
+}) {
   void sendActivityEmail({
     event: 'urgent_visit_record',
     token: entry.token,

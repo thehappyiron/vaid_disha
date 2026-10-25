@@ -40,7 +40,9 @@ export function ComponentDemoPage() {
   // 1. Reset all mock data
   const handleResetData = async () => {
     await resetLiveStore();
-    showToast('Reset all mock data: Queue, departments, alerts, and notifications restored to initial state.');
+    showToast(
+      'Reset all mock data: Queue, departments, alerts, and notifications restored to initial state.'
+    );
   };
 
   // 2. Simulate "Your turn is coming soon"
@@ -50,20 +52,24 @@ export function ComponentDemoPage() {
     await addNotification({
       type: 'turn_soon',
       title: 'Your turn is coming',
-      message: `Token ${targetToken}: You are next in line for Cardiology OPD (Room 204). Please proceed near the door.`,
-      actionUrl: `/patient/live?token=${targetToken}&dept=opd-cardio`,
+      message: `Token ${targetToken}: You are next in line for General Medicine (Room 2). Please proceed near the door.`,
+      actionUrl: `/patient/live?token=${targetToken}&dept=opd-general-2`,
       actionLabel: 'View Live Room Status',
       token: targetToken,
-      departmentId: 'opd-cardio',
+      departmentId: 'opd-general-2',
     });
-    showToast(`Simulated: "Your turn is coming soon" triggered for ${targetToken}. Live countdown updated.`);
+    showToast(
+      `Simulated: "Your turn is coming soon" triggered for ${targetToken}. Live countdown updated.`
+    );
   };
 
   // 3. Simulate "Consultation complete"
   const handleSimulateConsultComplete = async () => {
     const targetToken = 'CARD-1042';
     await completePatientConsultation(targetToken);
-    showToast(`Simulated: Consultation marked complete for ${targetToken}. Next steps notification broadcast.`);
+    showToast(
+      `Simulated: Consultation marked complete for ${targetToken}. Next steps notification broadcast.`
+    );
   };
 
   // 4. Simulate "Lab report ready"
@@ -71,22 +77,27 @@ export function ComponentDemoPage() {
     await addNotification({
       type: 'report_ready',
       title: 'Your lab report is ready',
-      message: 'Central Pathology Laboratory: Complete Blood Count (CBC) and Lipid Profile reports have been processed.',
+      message:
+        'Central Pathology Laboratory: Complete Blood Count (CBC) and Lipid Profile reports have been processed.',
       actionUrl: '/patient/reports',
       actionLabel: 'View Diagnostic Reports',
     });
-    showToast('Simulated: "Your lab report is ready" alert sent to patient notification tray.');
+    showToast(
+      'Simulated: "Your lab report is ready" alert sent to patient notification tray.'
+    );
   };
 
   // 5. Simulate "Doctor on break (back at 11:30)"
   const handleSimulateDoctorBreak = async () => {
     await setDepartmentCustomStatus(
-      'opd-cardio',
+      'opd-general-2',
       'Doctor on break (back at 11:30 AM)',
       'break',
       { breakUntil: '11:30 AM' }
     );
-    showToast('Simulated: Cardiology OPD status updated to "Doctor on break (back at 11:30 AM)". Patient status card updated.');
+    showToast(
+      'Simulated: General Medicine status updated to "Doctor on break (back at 11:30 AM)". Patient status card updated.'
+    );
   };
 
   // 6. Simulate "New emergency alert from patient"
@@ -98,14 +109,18 @@ export function ComponentDemoPage() {
       symptoms: ['Chest pain or heavy tightness', 'Difficulty breathing'],
       note: 'Sudden dizziness and severe tightness while walking near Lift B',
     });
-    showToast('Simulated: Critical Emergency Alert dispatched at 2nd Floor Near Lift B. Staff siren triggered.');
+    showToast(
+      'Simulated: Critical Emergency Alert dispatched at 2nd Floor Near Lift B. Staff siren triggered.'
+    );
   };
 
   // 7. Add 3 random walk-in guest patients
   const handleAddRandomGuests = async () => {
     const added = await addRandomGuestPatients(3);
     const tokens = added.map((p) => p.token).join(', ');
-    showToast(`Added 3 walk-in guest patients to queue: ${tokens}. Recalculated queue positions.`);
+    showToast(
+      `Added 3 walk-in guest patients to queue: ${tokens}. Recalculated queue positions.`
+    );
   };
 
   return (
@@ -150,9 +165,12 @@ export function ComponentDemoPage() {
               Dual-Tab Testing Recommendation
             </h2>
             <p className="text-[var(--color-text-main)] leading-relaxed">
-              Open <strong>/patient/slip</strong> or <strong>/patient/live</strong> in one tab and{' '}
-              <strong>/staff/dashboard</strong> in a second tab of the <strong>SAME browser</strong> to watch live sync via
-              BroadcastChannel. Sync between completely different physical devices requires the production backend.
+              Open <strong>/patient/slip</strong> or{' '}
+              <strong>/patient/live</strong> in one tab and{' '}
+              <strong>/staff/dashboard</strong> in a second tab of the{' '}
+              <strong>SAME browser</strong> to watch live sync via
+              BroadcastChannel. Sync between completely different physical
+              devices requires the production backend.
             </p>
           </div>
         </div>
@@ -173,7 +191,8 @@ export function ComponentDemoPage() {
                 Reset All Mock Data
               </span>
               <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
-                Clears custom entries and restores default patient queues, department delays, and demo alerts.
+                Clears custom entries and restores default patient queues,
+                department delays, and demo alerts.
               </p>
             </div>
           </button>
@@ -192,7 +211,8 @@ export function ComponentDemoPage() {
                 Simulate: "Your turn is coming soon"
               </span>
               <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
-                Broadcasts turn alert for CARD-1042, moves patient to position 1, and updates live room card.
+                Broadcasts turn alert for CARD-1042, moves patient to position
+                1, and updates live room card.
               </p>
             </div>
           </button>
@@ -211,7 +231,8 @@ export function ComponentDemoPage() {
                 Simulate: "Consultation complete"
               </span>
               <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
-                Marks consultation done, increments completed count, and pushes link to post-visit completion guide.
+                Marks consultation done, increments completed count, and pushes
+                link to post-visit completion guide.
               </p>
             </div>
           </button>
@@ -230,7 +251,8 @@ export function ComponentDemoPage() {
                 Simulate: "Lab report ready"
               </span>
               <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
-                Dispatches pathology lab readiness notification leading to diagnostic reports viewer.
+                Dispatches pathology lab readiness notification leading to
+                diagnostic reports viewer.
               </p>
             </div>
           </button>
@@ -249,7 +271,8 @@ export function ComponentDemoPage() {
                 Simulate: "Doctor on break (back at 11:30)"
               </span>
               <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
-                Sets department status to doctor break with 11:30 AM resume time, updating patient tracker.
+                Sets department status to doctor break with 11:30 AM resume
+                time, updating patient tracker.
               </p>
             </div>
           </button>
@@ -275,11 +298,15 @@ export function ComponentDemoPage() {
               <AlertTriangle size={24} />
             </div>
             <div className="space-y-1">
-              <span className="font-black text-base block" style={{ color: 'var(--color-emergency-text)' }}>
+              <span
+                className="font-black text-base block"
+                style={{ color: 'var(--color-emergency-text)' }}
+              >
                 Simulate: Patient Emergency Alert
               </span>
               <p className="text-xs leading-relaxed opacity-90">
-                Fires rapid response alert for Meera Rao near Lift B with siren and pinned staff dashboard banner.
+                Fires rapid response alert for Meera Rao near Lift B with siren
+                and pinned staff dashboard banner.
               </p>
             </div>
           </button>
@@ -298,7 +325,8 @@ export function ComponentDemoPage() {
                 Add 3 Random Walk-in Guests
               </span>
               <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
-                Appends 3 guest patients to the live queue with simulated clinical triage needs.
+                Appends 3 guest patients to the live queue with simulated
+                clinical triage needs.
               </p>
             </div>
           </button>
@@ -316,10 +344,14 @@ export function ComponentDemoPage() {
                 <span className="font-black text-base text-[var(--color-text-main)] block">
                   Advanced Store Inspector (/dev/store)
                 </span>
-                <ExternalLink size={16} className="text-[var(--color-text-muted)]" />
+                <ExternalLink
+                  size={16}
+                  className="text-[var(--color-text-muted)]"
+                />
               </div>
               <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
-                Direct raw store state visualizer with raw JSON inspector and granular department controls.
+                Direct raw store state visualizer with raw JSON inspector and
+                granular department controls.
               </p>
             </div>
           </Link>
@@ -332,23 +364,37 @@ export function ComponentDemoPage() {
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
             <div className="p-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)]">
-              <span className="text-[var(--color-text-muted)] block">Queue Length</span>
-              <strong className="text-base text-[var(--color-text-main)]">{state.queue.length} patients</strong>
-            </div>
-            <div className="p-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)]">
-              <span className="text-[var(--color-text-muted)] block">Active Emergencies</span>
-              <strong className="text-base text-red-600">
-                {(state.emergencyRequests || []).filter((e) => e.status !== 'resolved').length}
+              <span className="text-[var(--color-text-muted)] block">
+                Queue Length
+              </span>
+              <strong className="text-base text-[var(--color-text-main)]">
+                {state.queue.length} patients
               </strong>
             </div>
             <div className="p-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)]">
-              <span className="text-[var(--color-text-muted)] block">Notifications</span>
+              <span className="text-[var(--color-text-muted)] block">
+                Active Emergencies
+              </span>
+              <strong className="text-base text-red-600">
+                {
+                  (state.emergencyRequests || []).filter(
+                    (e) => e.status !== 'resolved'
+                  ).length
+                }
+              </strong>
+            </div>
+            <div className="p-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)]">
+              <span className="text-[var(--color-text-muted)] block">
+                Notifications
+              </span>
               <strong className="text-base text-[var(--color-text-main)]">
                 {state.notifications?.length || 0}
               </strong>
             </div>
             <div className="p-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)]">
-              <span className="text-[var(--color-text-muted)] block">Departments</span>
+              <span className="text-[var(--color-text-muted)] block">
+                Departments
+              </span>
               <strong className="text-base text-[var(--color-text-main)]">
                 {Object.keys(state.departments).length} active
               </strong>

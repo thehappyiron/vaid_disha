@@ -4,7 +4,7 @@ const DEFAULT_VARS = {
   app_name: 'Vaid Disha',
   counter_location: 'Main OPD Registration Counter, Ground Floor',
   emergency_number: '108',
-  pharmacy_counter: 'Pharmacy Counter 3',
+  pharmacy_counter: 'Pharmacy (G-04)',
   grace_minutes: '15',
   radius_minutes: '20',
 };

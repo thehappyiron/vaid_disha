@@ -58,7 +58,8 @@ function speakText(text: string, langCode: string, onEnd?: () => void) {
   try {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = langCode === 'hi' ? 'hi-IN' : langCode === 'mr' ? 'mr-IN' : 'en-US';
+    utterance.lang =
+      langCode === 'hi' ? 'hi-IN' : langCode === 'mr' ? 'mr-IN' : 'en-US';
     utterance.rate = 0.88;
     if (onEnd) {
       utterance.onend = onEnd;
@@ -87,7 +88,9 @@ export function PatientVisitPage() {
     return {
       patientName: isRegistered ? user.name : '',
       patientAge: isRegistered && user.age ? user.age : '',
-      patientGender: (isRegistered && user.gender ? user.gender.toLowerCase() : '') as any,
+      patientGender: (isRegistered && user.gender
+        ? user.gender.toLowerCase()
+        : '') as any,
       accessibilityNeeds: ['none'],
       purposeId: 'consultation',
       departmentId: 'opd-general',
@@ -105,7 +108,9 @@ export function PatientVisitPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSymptomHelper, setShowSymptomHelper] = useState(false);
   const [symptomInput, setSymptomInput] = useState('');
-  const [symptomResult, setSymptomResult] = useState<SymptomMatchResult | null>(null);
+  const [symptomResult, setSymptomResult] = useState<SymptomMatchResult | null>(
+    null
+  );
   const [analyzingSymptoms, setAnalyzingSymptoms] = useState(false);
 
   // Load departments
@@ -134,7 +139,10 @@ export function PatientVisitPage() {
   // Determine whether department selection step is needed
   // (Always needed for consultation and follow_up; for others, default department matches)
   const isDepartmentStepNeeded = useMemo(() => {
-    return visitData.purposeId === 'consultation' || visitData.purposeId === 'follow_up';
+    return (
+      visitData.purposeId === 'consultation' ||
+      visitData.purposeId === 'follow_up'
+    );
   }, [visitData.purposeId]);
 
   // Calculate dynamic steps
@@ -275,7 +283,12 @@ export function PatientVisitPage() {
   const handleGenerateSlip = async () => {
     try {
       setGenerating(true);
-      if (visitData.patientName?.trim() && (!user?.name || user.name === 'Patient' || user.name === 'Registered Patient')) {
+      if (
+        visitData.patientName?.trim() &&
+        (!user?.name ||
+          user.name === 'Patient' ||
+          user.name === 'Registered Patient')
+      ) {
         updateUserProfile({ name: visitData.patientName.trim() });
       }
       const slip = await generateSlip(visitData);
@@ -291,7 +304,9 @@ export function PatientVisitPage() {
   // Filtered departments for Step 4
   const filteredDepartments = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
-    const consultationDepts = departments.filter((d) => d.category === 'consultation');
+    const consultationDepts = departments.filter(
+      (d) => d.category === 'consultation'
+    );
     if (!q) return consultationDepts;
     return consultationDepts.filter((d) => {
       const name = t(d.nameKey).toLowerCase();
@@ -303,7 +318,9 @@ export function PatientVisitPage() {
 
   // Current department object
   const selectedDepartmentObj = useMemo(() => {
-    return departments.find((d) => d.id === visitData.departmentId) || departments[0];
+    return (
+      departments.find((d) => d.id === visitData.departmentId) || departments[0]
+    );
   }, [departments, visitData.departmentId]);
 
   return (
@@ -365,7 +382,10 @@ export function PatientVisitPage() {
             STEP 1: Basic Details (Name, Age, Gender)
             ══════════════════════════════════════════════════════════════════ */}
         {currentStep === 1 && (
-          <section aria-labelledby="step1-heading" className="w-full max-w-2xl mx-auto flex flex-col gap-5 min-w-0">
+          <section
+            aria-labelledby="step1-heading"
+            className="w-full max-w-2xl mx-auto flex flex-col gap-5 min-w-0"
+          >
             <div>
               <h1
                 id="step1-heading"
@@ -382,9 +402,17 @@ export function PatientVisitPage() {
             {user && !user.isGuest && (
               <OptionCard
                 as="div"
-                icon={<ShieldCheck size={22} className="text-[var(--color-primary-500)]" aria-hidden="true" />}
+                icon={
+                  <ShieldCheck
+                    size={22}
+                    className="text-[var(--color-primary-500)]"
+                    aria-hidden="true"
+                  />
+                }
                 iconBgClass="bg-blue-100 text-blue-800"
-                title={t('patient_visit.registered_prefilled', { name: user.name })}
+                title={t('patient_visit.registered_prefilled', {
+                  name: user.name,
+                })}
                 description="You can edit these details or tap Next to keep them."
                 className="bg-blue-50 border-2 border-blue-200"
               />
@@ -405,7 +433,9 @@ export function PatientVisitPage() {
                   placeholder={t('patient_visit.name_placeholder')}
                   hint={t('patient_visit.name_hint')}
                   value={visitData.patientName}
-                  onChange={(e) => setVisitData({ ...visitData, patientName: e.target.value })}
+                  onChange={(e) =>
+                    setVisitData({ ...visitData, patientName: e.target.value })
+                  }
                   required={false}
                 />
 
@@ -418,11 +448,17 @@ export function PatientVisitPage() {
                     max={125}
                     label={t('patient_visit.age_label')}
                     placeholder={t('patient_visit.age_placeholder')}
-                    value={visitData.patientAge === '' ? '' : String(visitData.patientAge)}
+                    value={
+                      visitData.patientAge === ''
+                        ? ''
+                        : String(visitData.patientAge)
+                    }
                     onChange={(e) =>
                       setVisitData({
                         ...visitData,
-                        patientAge: e.target.value ? Number(e.target.value) : '',
+                        patientAge: e.target.value
+                          ? Number(e.target.value)
+                          : '',
                       })
                     }
                   />
@@ -432,28 +468,39 @@ export function PatientVisitPage() {
                     <label className="block font-semibold mb-2 text-sm sm:text-base text-[var(--color-text)]">
                       {t('patient_visit.gender_label')}
                     </label>
-                    <div className="grid grid-cols-3 gap-2 min-w-0" role="group">
-                      {(['male', 'female', 'other'] as const).map((genderOption) => {
-                        const isSelected = visitData.patientGender === genderOption;
-                        return (
-                          <button
-                            key={genderOption}
-                            type="button"
-                            onClick={() => setVisitData({ ...visitData, patientGender: genderOption })}
-                            className={[
-                              'btn btn-sm py-2.5 h-auto min-h-[3rem] text-xs sm:text-sm font-bold min-w-0',
-                              isSelected
-                                ? 'btn-primary shadow-sm'
-                                : 'btn-ghost border border-[var(--color-border)]',
-                            ].join(' ')}
-                            aria-pressed={isSelected}
-                          >
-                            <span className="truncate">
-                              {t(`patient_visit.gender_${genderOption}`)}
-                            </span>
-                          </button>
-                        );
-                      })}
+                    <div
+                      className="grid grid-cols-3 gap-2 min-w-0"
+                      role="group"
+                    >
+                      {(['male', 'female', 'other'] as const).map(
+                        (genderOption) => {
+                          const isSelected =
+                            visitData.patientGender === genderOption;
+                          return (
+                            <button
+                              key={genderOption}
+                              type="button"
+                              onClick={() =>
+                                setVisitData({
+                                  ...visitData,
+                                  patientGender: genderOption,
+                                })
+                              }
+                              className={[
+                                'btn btn-sm py-2.5 h-auto min-h-[3rem] text-xs sm:text-sm font-bold min-w-0',
+                                isSelected
+                                  ? 'btn-primary shadow-sm'
+                                  : 'btn-ghost border border-[var(--color-border)]',
+                              ].join(' ')}
+                              aria-pressed={isSelected}
+                            >
+                              <span className="truncate">
+                                {t(`patient_visit.gender_${genderOption}`)}
+                              </span>
+                            </button>
+                          );
+                        }
+                      )}
                     </div>
                   </div>
                 </div>
@@ -463,10 +510,14 @@ export function PatientVisitPage() {
                   id="visit-patient-email"
                   type="email"
                   label={t('patient_entry.email_label') || 'Email Address'}
-                  placeholder={t('patient_entry.email_placeholder') || 'Enter your email'}
+                  placeholder={
+                    t('patient_entry.email_placeholder') || 'Enter your email'
+                  }
                   hint="We will send your OPD slip confirmation, live queue alerts, and visit reminders to this email."
                   value={visitData.email || ''}
-                  onChange={(e) => setVisitData({ ...visitData, email: e.target.value.trim() })}
+                  onChange={(e) =>
+                    setVisitData({ ...visitData, email: e.target.value.trim() })
+                  }
                   required={false}
                 />
               </form>
@@ -478,7 +529,10 @@ export function PatientVisitPage() {
             STEP 2: Accessibility Needs (Multi-select)
             ══════════════════════════════════════════════════════════════════ */}
         {currentStep === 2 && (
-          <section aria-labelledby="step2-heading" className="flex flex-col gap-4 min-w-0">
+          <section
+            aria-labelledby="step2-heading"
+            className="flex flex-col gap-4 min-w-0"
+          >
             <div>
               <h1
                 id="step2-heading"
@@ -491,7 +545,10 @@ export function PatientVisitPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 min-w-0" role="group">
+            <div
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 min-w-0"
+              role="group"
+            >
               {[
                 {
                   id: 'wheelchair' as const,
@@ -566,7 +623,10 @@ export function PatientVisitPage() {
             STEP 3: Purpose of Visit
             ══════════════════════════════════════════════════════════════════ */}
         {currentStep === 3 && (
-          <section aria-labelledby="step3-heading" className="flex flex-col gap-4 min-w-0">
+          <section
+            aria-labelledby="step3-heading"
+            className="flex flex-col gap-4 min-w-0"
+          >
             <div>
               <h1
                 id="step3-heading"
@@ -582,7 +642,10 @@ export function PatientVisitPage() {
             {/* Pinned Emergency Card */}
             <EmergencyCard to="/patient/emergency" />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 min-w-0" role="radiogroup">
+            <div
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 min-w-0"
+              role="radiogroup"
+            >
               {[
                 {
                   id: 'consultation' as const,
@@ -657,7 +720,10 @@ export function PatientVisitPage() {
             STEP 4: Department / Speciality (with symptom keyword matcher)
             ══════════════════════════════════════════════════════════════════ */}
         {currentStep === 4 && (
-          <section aria-labelledby="step4-heading" className="flex flex-col gap-4 min-w-0">
+          <section
+            aria-labelledby="step4-heading"
+            className="flex flex-col gap-4 min-w-0"
+          >
             <div>
               <h1
                 id="step4-heading"
@@ -679,7 +745,11 @@ export function PatientVisitPage() {
               description={t('patient_visit.help_choose_desc')}
               className="border-[var(--color-accent-500)] bg-[var(--color-accent-50)]"
               rightSlot={
-                <Button variant="secondary" size="sm" className="shrink-0 text-xs">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="shrink-0 text-xs"
+                >
                   {showSymptomHelper ? t('common.close') : t('common.select')}
                 </Button>
               }
@@ -753,7 +823,10 @@ export function PatientVisitPage() {
                 {symptomResult && (
                   <div className="mt-4 p-4 rounded-xl bg-blue-50 border-2 border-[var(--color-primary-300)] flex flex-col gap-2 min-w-0 animate-fadeIn">
                     <div className="flex items-center gap-2">
-                      <Sparkles size={18} className="text-[var(--color-primary-500)] shrink-0" />
+                      <Sparkles
+                        size={18}
+                        className="text-[var(--color-primary-500)] shrink-0"
+                      />
                       <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-primary-700)]">
                         {t('patient_visit.symptom_suggestion_title')}
                       </span>
@@ -765,14 +838,17 @@ export function PatientVisitPage() {
                           {t(symptomResult.department.nameKey)}
                         </h4>
                         <p className="text-xs text-[var(--color-primary-900)] mt-0.5">
-                          {symptomResult.department.doctorName} • {symptomResult.reason}
+                          {symptomResult.department.doctorName} •{' '}
+                          {symptomResult.reason}
                         </p>
                       </div>
 
                       <Button
                         variant="primary"
                         size="sm"
-                        onClick={() => handleApplySymptomDepartment(symptomResult.department)}
+                        onClick={() =>
+                          handleApplySymptomDepartment(symptomResult.department)
+                        }
                         className="shrink-0 self-start sm:self-auto"
                       >
                         {t('patient_visit.symptom_select_btn')}
@@ -801,7 +877,10 @@ export function PatientVisitPage() {
             </div>
 
             {/* Department Card List */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 min-w-0" role="radiogroup">
+            <div
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 min-w-0"
+              role="radiogroup"
+            >
               {filteredDepartments.length === 0 ? (
                 <div className="col-span-full card p-6 text-center text-sm text-[var(--color-text-muted)]">
                   {t('patient_visit.no_dept_found')}
@@ -827,13 +906,36 @@ export function PatientVisitPage() {
                       title={t(dept.nameKey)}
                       description={dept.doctorName}
                       badges={[
-                        <div key="loc" className="flex flex-wrap items-center gap-1.5 text-xs text-[var(--color-text-muted)] font-medium pt-0.5">
-                          <span>{t('common.building')} {dept.building}</span>
+                        <div
+                          key="loc"
+                          className="flex flex-wrap items-center gap-1.5 text-xs text-[var(--color-text-muted)] font-medium pt-0.5"
+                        >
+                          <span>
+                            {t('common.building')} {dept.building}
+                          </span>
                           <span>•</span>
-                          <span>{t('common.floor')} {dept.floor}</span>
+                          <span>
+                            {t('common.floor')} {dept.floor}
+                          </span>
                           <span>•</span>
-                          <span>Room {dept.roomNumbers[0]} ({dept.wing})</span>
-                        </div>
+                          <span>
+                            Room {dept.roomNumbers[0]} ({dept.wing})
+                          </span>
+                        </div>,
+                        <div
+                          key="hours"
+                          className="text-xs text-[var(--color-text-muted)]"
+                        >
+                          {dept.category === 'consultation' && (
+                            <span>
+                              {t('hospital.map.hours')}: {dept.opdHours} ·{' '}
+                              {t('hospital.map.average')}:{' '}
+                              {t('hospital.map.minutes', {
+                                count: dept.averageConsultationMinutes,
+                              })}
+                            </span>
+                          )}
+                        </div>,
                       ]}
                       rightSlot={
                         <div
@@ -860,7 +962,10 @@ export function PatientVisitPage() {
             STEP 5: Review & Generate Slip Screen
             ══════════════════════════════════════════════════════════════════ */}
         {currentStep === 5 && (
-          <section aria-labelledby="step5-heading" className="w-full max-w-2xl mx-auto flex flex-col gap-4 min-w-0">
+          <section
+            aria-labelledby="step5-heading"
+            className="w-full max-w-2xl mx-auto flex flex-col gap-4 min-w-0"
+          >
             <div>
               <h1
                 id="step5-heading"
@@ -877,7 +982,9 @@ export function PatientVisitPage() {
               {/* Review Item 1: Patient Details */}
               <OptionCard
                 as="div"
-                icon={<User size={22} className="text-[var(--color-primary-500)]" />}
+                icon={
+                  <User size={22} className="text-[var(--color-primary-500)]" />
+                }
                 iconBgClass="bg-[var(--color-primary-50)]"
                 title={
                   <div className="flex items-center justify-between gap-2">
@@ -901,7 +1008,10 @@ export function PatientVisitPage() {
                       {visitData.patientName || 'Guest Patient'}
                     </p>
                     <p className="text-xs sm:text-sm text-[var(--color-text-muted)] mt-0.5">
-                      {visitData.patientAge ? `${visitData.patientAge} years` : 'Age: Not specified'} •{' '}
+                      {visitData.patientAge
+                        ? `${visitData.patientAge} years`
+                        : 'Age: Not specified'}{' '}
+                      •{' '}
                       {visitData.patientGender
                         ? t(`patient_visit.gender_${visitData.patientGender}`)
                         : 'Gender: Not specified'}
@@ -914,7 +1024,12 @@ export function PatientVisitPage() {
               {/* Review Item 2: Accessibility Needs */}
               <OptionCard
                 as="div"
-                icon={<Accessibility size={22} className="text-[var(--color-primary-500)]" />}
+                icon={
+                  <Accessibility
+                    size={22}
+                    className="text-[var(--color-primary-500)]"
+                  />
+                }
                 iconBgClass="bg-[var(--color-primary-50)]"
                 title={
                   <div className="flex items-center justify-between gap-2">
@@ -948,7 +1063,12 @@ export function PatientVisitPage() {
               {/* Review Item 3: Purpose of Visit */}
               <OptionCard
                 as="div"
-                icon={<Heart size={22} className="text-[var(--color-primary-500)]" />}
+                icon={
+                  <Heart
+                    size={22}
+                    className="text-[var(--color-primary-500)]"
+                  />
+                }
                 iconBgClass="bg-[var(--color-primary-50)]"
                 title={
                   <div className="flex items-center justify-between gap-2">
@@ -982,7 +1102,12 @@ export function PatientVisitPage() {
               <OptionCard
                 as="div"
                 highlighted
-                icon={<Stethoscope size={22} className="text-[var(--color-primary-500)]" />}
+                icon={
+                  <Stethoscope
+                    size={22}
+                    className="text-[var(--color-primary-500)]"
+                  />
+                }
                 iconBgClass="bg-[var(--color-primary-50)]"
                 title={
                   <div className="flex items-center justify-between gap-2">
@@ -1011,7 +1136,10 @@ export function PatientVisitPage() {
                       {selectedDepartmentObj.doctorName}
                     </p>
                     <p className="text-xs text-[var(--color-text-muted)] mt-1">
-                      Building {selectedDepartmentObj.building}, Floor {selectedDepartmentObj.floor} — Room {selectedDepartmentObj.roomNumbers[0]} ({selectedDepartmentObj.wing})
+                      Building {selectedDepartmentObj.building}, Floor{' '}
+                      {selectedDepartmentObj.floor} — Room{' '}
+                      {selectedDepartmentObj.roomNumbers[0]} (
+                      {selectedDepartmentObj.wing})
                     </p>
                   </div>
                 }
@@ -1019,7 +1147,11 @@ export function PatientVisitPage() {
 
               {/* Notice */}
               <div className="text-xs text-[var(--color-text-muted)] p-3 bg-[var(--color-surface-2)] rounded-xl border border-[var(--color-border)] flex items-center gap-2">
-                <Lightbulb size={16} className="text-amber-500 shrink-0" aria-hidden="true" />
+                <Lightbulb
+                  size={16}
+                  className="text-amber-500 shrink-0"
+                  aria-hidden="true"
+                />
                 <span>{t('patient_visit.review_route_hint')}</span>
               </div>
             </div>
@@ -1029,7 +1161,9 @@ export function PatientVisitPage() {
         {/* ══════════════════════════════════════════════════════════════════
             BIG NEXT / BACK / GENERATE ACTIONS (Fixed or Sticky bottom bar)
             ══════════════════════════════════════════════════════════════════ */}
-        <div className={`flex flex-col sm:flex-row gap-3 pt-3 border-t border-[var(--color-border)] mt-2 min-w-0 w-full ${currentStep === 1 || currentStep === 5 ? 'max-w-2xl mx-auto' : ''}`}>
+        <div
+          className={`flex flex-col sm:flex-row gap-3 pt-3 border-t border-[var(--color-border)] mt-2 min-w-0 w-full ${currentStep === 1 || currentStep === 5 ? 'max-w-2xl mx-auto' : ''}`}
+        >
           <Button
             type="button"
             variant="ghost"
