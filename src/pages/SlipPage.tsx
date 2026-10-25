@@ -142,6 +142,15 @@ export function SlipPage() {
     window.print();
   };
 
+  const handleNavigateToFacility = (destinationNodeId: string) => {
+    if (!slip) return;
+    setShowAmenitiesModal(false);
+    const params = new URLSearchParams({ dest: destinationNodeId });
+    navigate(`/patient/guidance/${slip.id}?${params}`, {
+      state: { slip, destinationNodeId },
+    });
+  };
+
   const handleShareWithAttendant = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!slip || !isValidEmail(attendantEmail)) {
@@ -1046,8 +1055,8 @@ export function SlipPage() {
             aria-labelledby="amenities-modal-title"
             className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-3 sm:p-5"
           >
-            <div className="bg-[var(--color-surface)] border-2 border-[var(--color-border)] rounded-2xl w-full max-w-md p-5 shadow-2xl max-h-[85vh] overflow-y-auto">
-              <div className="flex items-center justify-between pb-3 border-b border-[var(--color-border)] mb-3">
+            <div className="bg-[var(--color-surface)] border-2 border-[var(--color-border)] rounded-2xl w-full max-w-md p-5 shadow-2xl max-h-[85vh] flex flex-col">
+              <div className="flex items-center justify-between gap-2 pb-3 border-b border-[var(--color-border)] mb-3 shrink-0">
                 <div className="flex items-center gap-2">
                   <Accessibility size={22} className="text-[var(--color-primary-500)]" />
                   <h3 id="amenities-modal-title" className="font-extrabold text-lg text-[var(--color-text)]">
@@ -1057,22 +1066,34 @@ export function SlipPage() {
                 <button
                   type="button"
                   onClick={() => setShowAmenitiesModal(false)}
-                  className="btn btn-ghost btn-sm btn-icon rounded-full"
+                  className="btn btn-ghost btn-sm btn-icon rounded-full shrink-0"
                   aria-label={t('common.close')}
                 >
                   <X size={20} />
                 </button>
               </div>
 
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-3 min-h-0 overflow-y-auto">
                 {/* Accessible Washroom */}
                 <div className="p-3.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] flex items-start gap-3">
                   <div className="w-10 h-10 rounded-lg bg-teal-100 text-teal-800 flex items-center justify-center shrink-0">
                     <Accessibility size={22} />
                   </div>
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <h4 className="font-bold text-sm text-[var(--color-text)]">{t('slip.washroom_label')}</h4>
                     <p className="text-xs text-[var(--color-text-muted)] mt-1">{t('slip.washroom_desc')}</p>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      fullWidth
+                      className="mt-3"
+                      icon={<Navigation size={16} />}
+                      aria-label={`${t('facilities.take_me_here')}: ${t('slip.washroom_label')}`}
+                      onClick={() => handleNavigateToFacility('washroom-f0')}
+                    >
+                      {t('facilities.take_me_here')}
+                    </Button>
                   </div>
                 </div>
 
@@ -1081,9 +1102,21 @@ export function SlipPage() {
                   <div className="w-10 h-10 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center shrink-0">
                     <Accessibility size={22} />
                   </div>
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <h4 className="font-bold text-sm text-[var(--color-text)]">{t('slip.wheelchair_label')}</h4>
                     <p className="text-xs text-[var(--color-text-muted)] mt-1">{t('slip.wheelchair_desc')}</p>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      fullWidth
+                      className="mt-3"
+                      icon={<Navigation size={16} />}
+                      aria-label={`${t('facilities.take_me_here')}: ${t('slip.wheelchair_label')}`}
+                      onClick={() => handleNavigateToFacility('wheelchair-f0-main')}
+                    >
+                      {t('facilities.take_me_here')}
+                    </Button>
                   </div>
                 </div>
 
@@ -1092,14 +1125,26 @@ export function SlipPage() {
                   <div className="w-10 h-10 rounded-lg bg-cyan-100 text-cyan-800 flex items-center justify-center shrink-0">
                     <Building2 size={22} />
                   </div>
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <h4 className="font-bold text-sm text-[var(--color-text)]">{t('slip.drinking_water')}</h4>
                     <p className="text-xs text-[var(--color-text-muted)] mt-1">{t('slip.drinking_water_desc')}</p>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      fullWidth
+                      className="mt-3"
+                      icon={<Navigation size={16} />}
+                      aria-label={`${t('facilities.take_me_here')}: ${t('slip.drinking_water')}`}
+                      onClick={() => handleNavigateToFacility('water-f0')}
+                    >
+                      {t('facilities.take_me_here')}
+                    </Button>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-4 mt-2">
+              <div className="pt-4 mt-2 shrink-0">
                 <Button variant="ghost" fullWidth onClick={() => setShowAmenitiesModal(false)}>
                   {t('common.close')}
                 </Button>

@@ -12,8 +12,6 @@ import {
   createMockGuestUser,
 } from '../data/mockUserData';
 
-import { syncUserProfileToSupabase, fetchSupabaseUser } from '../services/supabaseClient';
-
 export function deriveNameFromEmail(email?: string): string {
   if (!email) return 'Registered Patient';
   const localPart = email.split('@')[0];
@@ -32,12 +30,11 @@ interface AuthContextValue {
   role: UserRole | null;
   isAuthenticated: boolean;
   isGuest: boolean;
-  loginAsPatientWithOtp: (
+  loginAsDemoPatient: (
     phone: string,
-    otp: string,
     email?: string,
     name?: string
-  ) => Promise<UserProfile>;
+  ) => UserProfile;
   loginAsGuest: () => UserProfile;
   loginAsStaff: (staffId: string, password?: string) => Promise<boolean>;
   logout: () => void;
@@ -65,64 +62,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (user) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-      syncUserProfileToSupabase(user);
     } else {
       localStorage.removeItem(STORAGE_KEY);
     }
   }, [user]);
 
-  // Attempt to refresh user data from Supabase in the background
-  useEffect(() => {
-    if (user?.id && !user.isGuest) {
-      fetchSupabaseUser(user.id).then((cloudUser) => {
-        if (cloudUser && cloudUser.name && cloudUser.name !== 'Patient') {
-          setUser((prev) => (prev ? { ...prev, ...cloudUser } : cloudUser));
-        }
-      });
-    }
-  }, [user?.id, user?.isGuest]);
-
   const updateUserProfile = (updates: Partial<UserProfile>) => {
     setUser((prev) => {
       if (!prev) return null;
       const updated = { ...prev, ...updates };
-      syncUserProfileToSupabase(updated);
       return updated;
     });
   };
 
-  const loginAsPatientWithOtp = async (
+  // Demo sign-in creates a local profile, without verifying contact details.
+  const loginAsDemoPatient = (
     phone: string,
-    _otp: string,
     email?: string,
     name?: string
-  ): Promise<UserProfile> => {
-    const normalizedEmail = email?.trim().toLowerCase();
-    const patientId =
-      phone && MOCK_REGISTERED_PATIENT.phone === phone
-        ? MOCK_REGISTERED_PATIENT.id
-        : `pat-${phone.slice(-4)}-${Date.now().toString().slice(-5)}`;
+  ): UserProfile => {
+    const normalizedPhone = phone.replace(/\D/g, '');
+    const normalizedEmail = email?.trim().toLowerCase() || undefined;
+    const existingPatient =
+      user?.role === 'registered' && user.phone === normalizedPhone
+        ? user
+        : normalizedPhone === MOCK_REGISTERED_PATIENT.phone
+          ? MOCK_REGISTERED_PATIENT
+          : undefined;
 
-    // Determine clean authentic patient name
     const cleanName =
       name?.trim() ||
-      (phone === MOCK_REGISTERED_PATIENT.phone ? MOCK_REGISTERED_PATIENT.name : '') ||
+      existingPatient?.name ||
       deriveNameFromEmail(normalizedEmail) ||
       'Registered Patient';
 
     const registeredUser: UserProfile = {
-      ...MOCK_REGISTERED_PATIENT,
-      id: patientId,
+      ...existingPatient,
+      id: existingPatient?.id || `demo-pat-${normalizedPhone}`,
       name: cleanName,
-      phone: phone || MOCK_REGISTERED_PATIENT.phone,
+      phone: normalizedPhone,
       email: normalizedEmail,
-      emailVerified: Boolean(normalizedEmail),
-      visits: phone === MOCK_REGISTERED_PATIENT.phone ? MOCK_REGISTERED_PATIENT.visits : [],
-      reports: phone === MOCK_REGISTERED_PATIENT.phone ? MOCK_REGISTERED_PATIENT.reports : [],
+      emailVerified: false,
+      role: 'registered',
+      isGuest: false,
+      visits: existingPatient?.visits || [],
+      reports: existingPatient?.reports || [],
     };
 
     setUser(registeredUser);
-    syncUserProfileToSupabase(registeredUser);
     return registeredUser;
   };
 
@@ -157,7 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     role: user?.role ?? null,
     isAuthenticated: !!user,
     isGuest: !!user?.isGuest,
-    loginAsPatientWithOtp,
+    loginAsDemoPatient,
     loginAsGuest,
     loginAsStaff,
     logout,

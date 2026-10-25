@@ -97,7 +97,8 @@ To experience live cross-tab synchronization:
 - Click **"Patient / Visitor"**.
 
 ### 2. Zero-Friction Patient Entry (`/patient/start`)
-- Select **"Continue as Guest (No login required)"** for an immediate walk-in visit, or log in with phone `9876543210` (mock OTP: `1234`) to access lifetime ABHA records.
+- Enter your name and any 10-digit mobile number, then select **"Continue to demo"**. Email is optional; no verification code, email service, or backend is required for demo sign-in. The profile is saved in this browser. Phone `9876543210` loads the sample patient's demo history.
+- Select **"Continue as Guest"** to proceed without a phone number.
 
 ### 3. Purpose & Accessibility Accommodations (`/patient/visit`)
 - Pick visit reason: e.g., *"Chest tightness & heart checkup"* $\to$ routes to **Cardiology OPD**.

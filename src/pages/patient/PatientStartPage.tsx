@@ -1,119 +1,33 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import {
-  LogIn,
-  UserX,
-  Mail,
-  KeyRound,
-  ArrowRight,
-  ShieldCheck,
-  Sparkles,
-  FileText,
-  Clock,
-  AlertTriangle,
-  Lightbulb,
-} from 'lucide-react';
-import {
-  isValidEmail,
-  sendRegistrationCompleteEmail,
-  sendVerificationEmail,
-  verifyEmailOtp,
-} from '../../services/emailService';
-import { checkEmailRegistered } from '../../services/supabaseClient';
+import { LogIn, UserX, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { BaseLayout } from '../../components/layout';
-import {
-  Button,
-  Input,
-  PageHeader,
-  StatusBadge,
-  OptionCard,
-} from '../../components/ui';
+import { Button, Input, PageHeader, StatusBadge, OptionCard } from '../../components/ui';
 
 export function PatientStartPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { loginAsPatientWithOtp, loginAsGuest } = useAuth();
+  const { loginAsDemoPatient, loginAsGuest } = useAuth();
 
-  // Form states
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
+  const [nameError, setNameError] = useState('');
   const [phoneError, setPhoneError] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [otpError, setOtpError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [isExistingUser, setIsExistingUser] = useState(false);
 
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!phoneNumber || phoneNumber.trim().length < 10) {
-      setPhoneError(t('demo.input_error_msg') || 'Please enter a valid 10-digit mobile number');
-      return;
-    }
-    if (!isValidEmail(email)) {
-      setEmailError('Please enter a valid email address');
-      return;
-    }
-    setPhoneError('');
-    setEmailError('');
-    setSubmitting(true);
-    try {
-      // Check if user already exists in Supabase or local store
-      const existing = await checkEmailRegistered(email);
-      if (existing) {
-        setIsExistingUser(true);
-        if (existing.name && !fullName.trim()) {
-          setFullName(existing.name);
-        }
-      } else {
-        setIsExistingUser(false);
-      }
+  const handleDemoSignIn = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const name = fullName.trim();
+    const validPhone = /^\d{10}$/.test(phoneNumber);
 
-      await sendVerificationEmail(email, existing?.name || fullName.trim() || 'Patient');
-      setOtpSent(true);
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Could not send the verification email.';
-      if (msg.toLowerCase().includes('failed to fetch')) {
-        setEmailError('Unable to reach email service. Please try again.');
-      } else {
-        setEmailError(msg);
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    setNameError(name ? '' : t('patient_entry.name_error'));
+    setPhoneError(validPhone ? '' : t('patient_entry.phone_error'));
+    if (!name || !validPhone) return;
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!otpCode || otpCode.trim().length !== 6) {
-      setOtpError('Please enter the 6-digit code from your email');
-      return;
-    }
-    setOtpError('');
-    setSubmitting(true);
-    try {
-      await verifyEmailOtp(email, otpCode);
-      const effectiveName = fullName.trim() || 'Patient';
-      const profile = await loginAsPatientWithOtp(phoneNumber, otpCode, email, effectiveName);
-      
-      // Only send registration complete email for newly registered users
-      if (!isExistingUser) {
-        await sendRegistrationCompleteEmail({
-          email,
-          patientName: profile.name || effectiveName,
-          patientId: profile.id,
-        });
-      }
-      navigate('/patient/visit');
-    } catch (error) {
-      setOtpError(error instanceof Error ? error.message : 'Verification failed. Please try again.');
-    } finally {
-      setSubmitting(false);
-    }
+    loginAsDemoPatient(phoneNumber, email, name);
+    navigate('/patient/visit');
   };
 
   const handleGuestEntry = () => {
@@ -125,7 +39,6 @@ export function PatientStartPage() {
     <BaseLayout showHome={true} headerTitle={t('app.name')}>
       <div className="page-container">
         <div className="w-full max-w-2xl mx-auto flex flex-col gap-4">
-          {/* Page Header */}
           <PageHeader
             title={t('patient_entry.page_title')}
             subtitle={t('patient_entry.page_subtitle')}
@@ -133,52 +46,29 @@ export function PatientStartPage() {
             onBack={() => navigate('/')}
           />
 
-        {/* Value Proposition Banner (one short sentence explaining benefit of login) */}
-        <OptionCard
-          as="div"
-          icon={<ShieldCheck size={24} aria-hidden="true" />}
-          iconBgClass="bg-[var(--color-primary-500)] text-white"
-          title="Why Sign In?"
-          description={t('patient_entry.login_benefit')}
-          badge={
-            <div className="flex flex-wrap gap-2 text-xs font-semibold text-[var(--color-primary-800)]">
-              <span className="flex items-center gap-1 bg-white/80 px-2 py-0.5 rounded-md border border-[var(--color-primary-200)]">
-                <FileText size={14} /> Medical Reports Saved
-              </span>
-              <span className="flex items-center gap-1 bg-white/80 px-2 py-0.5 rounded-md border border-[var(--color-primary-200)]">
-                <Clock size={14} /> Revisit Past Prescriptions
-              </span>
-            </div>
-          }
-          className="bg-[var(--color-primary-50)] border-2 border-[var(--color-primary-200)]"
-        />
-
-        {/* Option 1: Login / Create Account */}
-        <OptionCard
-          as="div"
-          highlighted
-          icon={<LogIn size={24} aria-hidden="true" />}
-          iconBgClass="bg-[var(--color-primary-50)] text-[var(--color-primary-500)]"
-          title={t('patient_entry.login_tab')}
-          description="Quick sign-in with mobile number, email, and a verification code"
-          badge={
-            <StatusBadge
-              variant="info"
-              label="Recommended"
-              icon={<Sparkles size={12} />}
-            />
-          }
-        >
-          {!otpSent ? (
-            <form onSubmit={handleSendOtp} className="flex flex-col gap-4 mt-2">
+          <OptionCard
+            as="div"
+            highlighted
+            icon={<LogIn size={24} aria-hidden="true" />}
+            iconBgClass="bg-[var(--color-primary-50)] text-[var(--color-primary-500)]"
+            title={t('patient_entry.login_tab')}
+            description={t('patient_entry.demo_description')}
+            badge={<StatusBadge variant="info" label={t('patient_entry.demo_badge')} />}
+          >
+            <form onSubmit={handleDemoSignIn} className="flex flex-col gap-4 mt-2">
               <Input
                 id="patient-name"
-                label={t('patient_entry.name_label', 'Full Name')}
-                placeholder={t('patient_entry.name_placeholder', 'Enter your full name (e.g. Ramesh Sharma)')}
+                label={t('patient_entry.name_label')}
+                placeholder={t('patient_entry.name_placeholder')}
                 type="text"
                 autoComplete="name"
                 value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
+                onChange={(event) => {
+                  setFullName(event.target.value);
+                  setNameError('');
+                }}
+                error={nameError}
+                required
               />
 
               <Input
@@ -186,10 +76,12 @@ export function PatientStartPage() {
                 label={t('patient_entry.phone_label')}
                 placeholder={t('patient_entry.phone_placeholder')}
                 type="tel"
+                inputMode="numeric"
+                autoComplete="tel-national"
                 maxLength={10}
                 value={phoneNumber}
-                onChange={(e) => {
-                  setPhoneNumber(e.target.value.replace(/\D/g, ''));
+                onChange={(event) => {
+                  setPhoneNumber(event.target.value.replace(/\D/g, ''));
                   setPhoneError('');
                 }}
                 error={phoneError}
@@ -204,116 +96,40 @@ export function PatientStartPage() {
                 type="email"
                 autoComplete="email"
                 value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value.trim());
-                  setEmailError('');
-                }}
-                error={emailError}
-                required
+                onChange={(event) => setEmail(event.target.value.trim())}
               />
 
-              <Button
-                type="submit"
-                variant="primary"
-                fullWidth
-                loading={submitting}
-                icon={<Mail size={18} />}
-              >
-                {t('patient_entry.send_otp')}
+              <Button type="submit" variant="primary" fullWidth icon={<ArrowRight size={18} />}>
+                {t('patient_entry.demo_sign_in')}
               </Button>
+              <p className="text-sm text-[var(--color-text-muted)] leading-relaxed">
+                {t('patient_entry.login_benefit')}
+              </p>
             </form>
-          ) : (
-            <form onSubmit={handleVerifyOtp} className="flex flex-col gap-4 mt-2">
-              <div className="p-3 bg-[var(--color-surface-2)] rounded-lg text-sm text-[var(--color-text)] flex justify-between items-center">
-                <span>
-                  Sent code to: <strong>{email}</strong> ({`+91 ${phoneNumber}`})
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOtpSent(false);
-                    setOtpCode('');
-                    setOtpError('');
-                  }}
-                  className="text-xs font-bold text-[var(--color-primary-500)] underline"
-                >
-                  Change
-                </button>
+          </OptionCard>
+
+          <div className="relative my-2 text-center min-w-0">
+            <hr className="divider" />
+            <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[var(--color-bg)] px-3 text-xs font-bold tracking-wider">
+              {t('patient_entry.or_divider')}
+            </span>
+          </div>
+
+          <OptionCard
+            onClick={handleGuestEntry}
+            ariaLabel={`${t('patient_entry.guest_title')}: ${t('patient_entry.guest_desc')}`}
+            icon={<UserX size={24} aria-hidden="true" />}
+            iconBgClass="bg-[var(--color-surface-2)] text-[var(--color-text)]"
+            title={t('patient_entry.guest_title')}
+            description={t('patient_entry.guest_desc')}
+            badge={<StatusBadge variant="neutral" label={t('slip.guest_badge')} />}
+            footer={
+              <div className="flex items-center justify-end gap-1 text-[var(--color-primary-500)] font-bold text-sm">
+                <span>{t('patient_entry.guest_btn')}</span>
+                <ArrowRight size={18} aria-hidden="true" />
               </div>
-
-              {isExistingUser ? (
-                <div className="p-3.5 bg-amber-50 border-2 border-amber-300 rounded-xl text-xs sm:text-sm text-amber-950 font-semibold flex items-center gap-2.5 shadow-xs">
-                  <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" aria-hidden="true" />
-                  <span>
-                    {t(
-                      'patient_entry.user_exists_otp_notice',
-                      'User already exists. Please enter the OTP sent to your email.'
-                    )}
-                  </span>
-                </div>
-              ) : (
-                <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-md text-xs text-blue-900 font-medium flex items-center gap-1.5">
-                  <Lightbulb className="w-4 h-4 text-blue-600 shrink-0" aria-hidden="true" />
-                  <span className="font-bold text-blue-700">
-                    {t('patient_entry.otp_hint', 'Enter the 6-digit verification code sent to your email')}
-                  </span>
-                </div>
-              )}
-
-              <Input
-                id="patient-otp"
-                label={t('patient_entry.otp_label')}
-                placeholder={t('patient_entry.otp_placeholder')}
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                autoFocus
-                value={otpCode}
-                onChange={(e) => {
-                  setOtpCode(e.target.value.replace(/\D/g, ''));
-                  setOtpError('');
-                }}
-                error={otpError}
-                required
-              />
-
-              <Button
-                type="submit"
-                variant="primary"
-                fullWidth
-                loading={submitting}
-                icon={<KeyRound size={18} />}
-              >
-                {t('patient_entry.verify_btn')}
-              </Button>
-            </form>
-          )}
-        </OptionCard>
-
-        {/* Divider */}
-        <div className="relative my-2 text-center min-w-0">
-          <hr className="divider" />
-          <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[var(--color-bg)] px-3 text-xs font-bold text-[var(--color-text-muted)] tracking-wider">
-            {t('patient_entry.or_divider')}
-          </span>
-        </div>
-
-        {/* Option 2: Continue as Guest */}
-        <OptionCard
-          onClick={handleGuestEntry}
-          ariaLabel={`${t('patient_entry.guest_title')}: ${t('patient_entry.guest_desc')}`}
-          icon={<UserX size={24} aria-hidden="true" />}
-          iconBgClass="bg-[var(--color-surface-2)] text-[var(--color-text)]"
-          title={t('patient_entry.guest_title')}
-          description={t('patient_entry.guest_desc')}
-          badge={<StatusBadge variant="neutral" label="No Sign-in" />}
-          footer={
-            <div className="flex items-center justify-end gap-1 text-[var(--color-primary-500)] font-bold text-sm">
-              <span>{t('patient_entry.guest_btn')}</span>
-              <ArrowRight size={18} aria-hidden="true" />
-            </div>
-          }
-        />
+            }
+          />
         </div>
       </div>
     </BaseLayout>

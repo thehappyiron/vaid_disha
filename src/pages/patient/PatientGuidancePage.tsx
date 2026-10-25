@@ -83,6 +83,9 @@ export function PatientGuidancePage() {
     slip?.accessibilityNeeds?.includes('wheelchair') ||
     slip?.accessibilityNeeds?.includes('walking_difficulty');
 
+  const destinationName = destinationNode ? t(destinationNode.nameKey, destinationNode.name) : '';
+  const isFacilityDestination = destinationNode?.category === 'facility';
+
   // Load slip if provided via ID
   useEffect(() => {
     async function fetchSlip() {
@@ -236,7 +239,7 @@ export function PatientGuidancePage() {
       setIsArrived(true);
       if (autoVoice) {
         const arrivalText = t('guidance.arrival_title', {
-          room: destinationNode?.roomNumber || 'your clinic',
+          room: destinationNode?.roomNumber || destinationName,
         });
         speakCurrentStep(arrivalText);
       }
@@ -284,10 +287,11 @@ export function PatientGuidancePage() {
         {/* Page Header */}
         <PageHeader
           title={t('guidance.page_title')}
+          showBack={Boolean(slip)}
           subtitle={
             destinationNode
               ? t('guidance.route_title', {
-                  department: slip ? t(slip.department.nameKey) : destinationNode.name,
+                  department: destinationName,
                 })
               : t('guidance.step1_subtitle')
           }
@@ -545,7 +549,7 @@ export function PatientGuidancePage() {
                     Starting from: <strong className="text-[var(--color-text)]">{startNode.name}</strong>
                   </span>
                   <span className="text-xs font-bold text-[var(--color-text-muted)] block">
-                    Destination: <strong className="text-[var(--color-primary-600)]">{destinationNode?.name}</strong>{destinationNode?.roomNumber ? ` (Room ${destinationNode.roomNumber})` : ''}
+                    Destination: <strong className="text-[var(--color-primary-600)]">{destinationName}</strong>{destinationNode?.roomNumber ? ` (Room ${destinationNode.roomNumber})` : ''}
                   </span>
                 </div>
               </div>
@@ -592,29 +596,31 @@ export function PatientGuidancePage() {
                   </span>
                   <h2 className="text-3xl sm:text-4xl font-black text-emerald-950">
                     {t('guidance.arrival_title', {
-                      room: destinationNode?.roomNumber || 'Room',
+                      room: destinationNode?.roomNumber || destinationName,
                     })}
                   </h2>
                   <p className="text-base sm:text-lg font-bold text-emerald-900 mt-1">
                     {t('guidance.arrival_subtitle', {
-                      department: slip ? t(slip.department.nameKey) : destinationNode?.name,
+                      department: destinationName,
                     })}
                   </p>
                 </div>
 
-                <div className="p-4 bg-white/90 border border-emerald-300 rounded-2xl max-w-sm w-full">
-                  <p className="text-sm font-extrabold text-emerald-950">
-                    {t('guidance.arrival_action')}
-                  </p>
-                  {slip && (
-                    <div className="mt-2 pt-2 border-t border-emerald-200 flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-600">Your Token:</span>
-                      <span className="text-lg font-mono font-black text-[var(--color-primary-600)]">
-                        {slip.token}
-                      </span>
-                    </div>
-                  )}
-                </div>
+                {!isFacilityDestination && (
+                  <div className="p-4 bg-white/90 border border-emerald-300 rounded-2xl max-w-sm w-full">
+                    <p className="text-sm font-extrabold text-emerald-950">
+                      {t('guidance.arrival_action')}
+                    </p>
+                    {slip && (
+                      <div className="mt-2 pt-2 border-t border-emerald-200 flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-600">Your Token:</span>
+                        <span className="text-lg font-mono font-black text-[var(--color-primary-600)]">
+                          {slip.token}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm pt-2">
                   {slip && (
